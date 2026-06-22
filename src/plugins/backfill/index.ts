@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'Backfill',
     icon: UpdateIcon,
+    hidden: true,
   });
