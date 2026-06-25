@@ -42,4 +42,5 @@ module.exports = {
   setupFiles: ['raf/polyfill', '<rootDir>/src/utils/tests/setupFiles.ts'],
   setupFilesAfterEnv: ['@testing-library/jest-dom/extend-expect', 'jest-extended'],
   testURL: 'http://localhost/',
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/e2e/'],
 };
