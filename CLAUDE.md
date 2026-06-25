@@ -53,3 +53,26 @@ with MUI Box's `css` prop, causing a TS error at component definition time.
   (the HTTP status text), so a `?? 'Unknown error'` fallback is never reached that way.
   To test the unknown-error path, mock the hook directly:
   `jest.spyOn(hooks, 'useCreate...').mockReturnValue([..., jest.fn().mockResolvedValue({ ok: false, error: undefined })])`
+
+## Build and packaging
+- Local production build: `./package.sh` — runs Webpack, outputs to `dist/`, zips to `dist.zip`
+- `dist/index.html` contains `{{ base_url }}/` — a Jinja2 placeholder Flexget substitutes at
+  runtime with the path prefix. Do not expect the built HTML to be directly openable in a browser
+  without substitution.
+- API calls are made to `/api${url}` (relative to the page's base URL), not to an absolute host.
+
+## Monaco editor (Config plugin)
+- `monaco-editor/esm/vs/editor/editor.api.js` sets `window.monaco = api` at module load time.
+  `monaco-yaml` reads `monaco` as a bare global — it must be imported first.
+- The lazy loader in `config/index.ts` awaits monaco-editor, then monaco-yaml, then Config in that
+  order. This ordering is load-bearing; changing it reintroduces the `monaco is not defined` error.
+- Monaco theme registration lives in `Editor.tsx` (not `core/theme/index.ts`) so that monaco-editor
+  stays out of the initial bundle. Do not add Monaco imports back to `core/theme/index.ts`.
+
+## E2e tests
+- Run: `yarn test:e2e` (builds first, then runs Playwright against `dist/`)
+- Requires `dist/` to be built; the script handles this automatically.
+- Playwright 1.44 is pinned — it is the last release supporting Node 16. Do not upgrade until
+  the project moves to Node 18+.
+- The static server (`scripts/serve-dist.js`) substitutes `{{ base_url }}/` with `/` in
+  `index.html` and returns `401` for all `/api/*` paths so the login form renders correctly.
