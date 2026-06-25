@@ -6,13 +6,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [12.x]
+        node: [20.x]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         name: Checkout Flexget
         with:
           ref: develop
@@ -28,12 +28,12 @@ jobs:
           GIT_EMAIL: ${{ secrets.GIT_EMAIL }}
           GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Cache Dependencies
         id: cache-dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ matrix.node }}-deps-${{ hashFiles('yarn.lock') }}
@@ -42,9 +42,9 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
       - name: Set Deployment Status Pending
-        uses: deliverybot/deployment-status@v1
+        uses: ./.github/actions/deployment-status
         with:
-          state: pending
+          status: pending
           token: ${{ github.token }}
       - name: Run Build
         run: VERSION=$(yarn -s release:bump release --dry-run) yarn build
@@ -55,13 +55,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set Deployment Status Success
-        uses: deliverybot/deployment-status@v1
+        uses: ./.github/actions/deployment-status
         with:
-          state: success
+          status: success
           token: ${{ github.token }}
       - name: Set Deployment Status Failure
         if: failure() || cancelled()
-        uses: deliverybot/deployment-status@v1
+        uses: ./.github/actions/deployment-status
         with:
-          state: failure
+          status: failure
           token: ${{ github.token }}

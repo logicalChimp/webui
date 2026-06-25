@@ -8,5 +8,5 @@ inputs:
     description: Status to set
     required: true
 runs:
-  using: node12
+  using: node20
   main: index.js
