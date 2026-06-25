@@ -2,14 +2,14 @@ import React, { FC, useMemo, useState } from 'react';
 import { Formik } from 'formik';
 import { useHistory, useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
-import { IconButton, Tooltip } from '@material-ui/core';
-import { CheckCircle, Error, Update } from '@material-ui/icons';
+import { FormControlLabel, IconButton, Switch, Tooltip } from '@material-ui/core';
+import { CheckCircle, Error, RadioButtonUnchecked, Update } from '@material-ui/icons';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { Direction } from 'utils/query';
 import { useContainer } from 'unstated-next';
 import { SortByStatus, TaskStatusOptions } from './types';
 import TaskTable from './TaskTable';
-import { useGetTaskStatuses, TaskContainer } from './hooks';
+import { useGetTaskStatuses, useGetAllExecutedTaskNames, TaskContainer } from './hooks';
 import Execute from './Execute';
 
 const headers = [
@@ -66,6 +66,7 @@ const Latest: FC = () => {
   useInjectPageTitle('Tasks - Latest Executions');
   const { push } = useHistory();
   const { url } = useRouteMatch();
+  const [showDeleted, setShowDeleted] = useState(false);
   const [options, setOptions] = useState<TaskStatusOptions>({
     page: 0,
     perPage: 10,
@@ -75,9 +76,31 @@ const Latest: FC = () => {
 
   const { tasks, total } = useGetTaskStatuses(options);
   const { tasks: configTasks } = useContainer(TaskContainer);
-  const rows = useMemo(
-    () =>
-      tasks.map(
+  const allExecutedNames = useGetAllExecutedTaskNames();
+
+  const unexecutedTasks = useMemo(
+    () => configTasks.filter(t => !allExecutedNames.has(t.name)),
+    [configTasks, allExecutedNames],
+  );
+
+  const rows = useMemo(() => {
+    const configNames = new Set(configTasks.map(t => t.name));
+
+    const makeBackfillButton = (name: string) => (
+      <Tooltip title="Backfill missing episodes for series in this task">
+        <IconButton
+          size="small"
+          component={Link}
+          to={`/backfill?task=${encodeURIComponent(name)}`}
+          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
+        >
+          <Update fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+
+    return [
+      ...tasks.map(
         ({
           name,
           id,
@@ -109,18 +132,8 @@ const Latest: FC = () => {
             ) : (
               <Error fontSize="small" color="error" />
             ),
-            [SortByStatus.Backfill]: (
-              <Tooltip title="Backfill missing episodes for series in this task">
-                <IconButton
-                  size="small"
-                  component={Link}
-                  to={`/backfill?task=${encodeURIComponent(name)}`}
-                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-                >
-                  <Update fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ),
+            [SortByStatus.Backfill]: makeBackfillButton(name),
+            deleted: !configNames.has(name),
           },
           props: {
             onClick: () => push(`${url}/${id}`),
@@ -128,15 +141,52 @@ const Latest: FC = () => {
           },
         }),
       ),
-    [push, tasks, url],
+      ...unexecutedTasks.map(({ name }) => ({
+        key: `unexecuted-${name}`,
+        data: {
+          [SortByStatus.ID]: undefined,
+          [SortByStatus.Name]: name,
+          [SortByStatus.LastExecutionTime]: undefined,
+          [SortByStatus.Start]: undefined,
+          [SortByStatus.End]: undefined,
+          [SortByStatus.Produced]: undefined,
+          [SortByStatus.Rejected]: undefined,
+          [SortByStatus.Accepted]: undefined,
+          [SortByStatus.Failed]: undefined,
+          [SortByStatus.AbortReason]: undefined,
+          [SortByStatus.Succeeded]: <RadioButtonUnchecked fontSize="small" color="disabled" />,
+          [SortByStatus.Backfill]: makeBackfillButton(name),
+          deleted: false,
+        },
+      })),
+    ];
+  }, [push, tasks, unexecutedTasks, url, configTasks]);
+
+  const visibleRows = useMemo(
+    () => (showDeleted ? rows : rows.filter(r => !r.data.deleted)),
+    [rows, showDeleted],
   );
 
   return (
     <>
       <Formik initialValues={options} onSubmit={setOptions}>
-        <TaskTable total={total} rows={rows} headers={headers} />
+        <TaskTable total={total} rows={visibleRows} headers={headers} />
       </Formik>
-      <Execute tasks={configTasks} />
+      <Execute
+        tasks={configTasks}
+        leftContent={
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showDeleted}
+                onChange={e => setShowDeleted(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Show Deleted"
+          />
+        }
+      />
     </>
   );
 };

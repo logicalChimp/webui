@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, ReactNode } from 'react';
 import { Formik } from 'formik';
 import { Button, Theme, Tabs, Tab, CircularProgress, Typography } from '@material-ui/core';
 import { useOverlayState } from 'utils/hooks';
@@ -58,9 +58,10 @@ const listItem = (theme: Theme) => css`
 
 interface Props {
   tasks: Task[];
+  leftContent?: ReactNode;
 }
 
-const Execute: FC<Props> = ({ tasks: taskStatuses }) => {
+const Execute: FC<Props> = ({ tasks: taskStatuses, leftContent }) => {
   const [
     {
       state: { tasks, selectedTask },
@@ -78,6 +79,7 @@ const Execute: FC<Props> = ({ tasks: taskStatuses }) => {
     <>
       <div css={executeWrapper}>
         <div css={tabSection}>
+          {leftContent}
           {readyState === ReadyState.Open && (
             <>
               <Tabs
