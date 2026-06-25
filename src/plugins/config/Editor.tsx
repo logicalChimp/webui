@@ -1,8 +1,11 @@
 import React, { FC, useCallback, useEffect } from 'react';
 import { useField } from 'formik';
-import { useTheme } from '@material-ui/core';
+import { useTheme, PaletteType } from '@material-ui/core';
 import MonacoEditor from 'react-monaco-editor';
 import { languages, editor } from 'monaco-editor/esm/vs/editor/editor.api';
+import lightEditorTheme from 'monaco-themes/themes/Tomorrow.json';
+import darkEditorTheme from 'monaco-themes/themes/Oceanic Next.json';
+import { themes } from 'core/theme';
 
 import './monaco';
 
@@ -13,6 +16,18 @@ import EditorWorker from 'worker-loader!monaco-editor/esm/vs/editor/editor.worke
 import YamlWorker from 'worker-loader!monaco-yaml/esm/yaml.worker';
 /* eslint-enable import/no-webpack-loader-syntax,import/no-extraneous-dependencies */
 import { YamlLanguage, Schema } from './types';
+
+const addEditorTheme = (name: PaletteType, data: editor.IStandaloneThemeData) =>
+  editor?.defineTheme(name, {
+    ...data,
+    colors: {
+      ...data.colors,
+      'editor.background': themes[name].background.default,
+    },
+  });
+
+addEditorTheme('light', lightEditorTheme as editor.IStandaloneThemeData);
+addEditorTheme('dark', darkEditorTheme as editor.IStandaloneThemeData);
 
 window.MonacoEnvironment = {
   getWorker(_: unknown, label: string) {

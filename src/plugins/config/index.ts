@@ -7,6 +7,10 @@ export default () =>
     component: lazy(async () => {
       await import(
         /* webpackChunkName: 'ConfigPlugin' */
+        'monaco-editor/esm/vs/editor/editor.api'
+      );
+      await import(
+        /* webpackChunkName: 'ConfigPlugin' */
         'monaco-yaml/esm/monaco.contribution'
       );
       return import(
