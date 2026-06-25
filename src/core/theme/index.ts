@@ -1,12 +1,9 @@
 import { useState, useCallback } from 'react';
 import { createContainer } from 'unstated-next';
-import { editor } from 'monaco-editor/esm/vs/editor/editor.api';
 
 import { common, orange, blueGrey } from '@material-ui/core/colors';
 import { createMuiTheme, Theme, PaletteType } from '@material-ui/core';
 import { rgba } from 'polished';
-import lightEditorTheme from 'monaco-themes/themes/Tomorrow.json';
-import darkEditorTheme from 'monaco-themes/themes/Oceanic Next.json';
 
 export const ThemeContainer = createContainer(() => {
   const [state, setState] = useState<PaletteType>('light');
@@ -75,22 +72,10 @@ const light = {
   },
 };
 
-const themes = {
+export const themes = {
   light,
   dark,
 } as const;
-
-const addEditorTheme = (name: PaletteType, data: editor.IStandaloneThemeData) =>
-  editor?.defineTheme(name, {
-    ...data,
-    colors: {
-      ...data.colors,
-      'editor.background': themes[name].background.default,
-    },
-  });
-
-addEditorTheme('light', lightEditorTheme as editor.IStandaloneThemeData);
-addEditorTheme('dark', darkEditorTheme as editor.IStandaloneThemeData);
 
 export const createTheme = (type: PaletteType = 'light'): Theme =>
   createMuiTheme({
