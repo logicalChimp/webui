@@ -89,6 +89,23 @@ export const useGetTaskStatuses = (options: TaskStatusOptions) => {
   return { ...state, ...tasks };
 };
 
+export const useGetAllExecutedTaskNames = () => {
+  const [names, setNames] = useState(new Set<string>());
+  const [, request] = useFlexgetAPI<TaskStatus[]>('/tasks/status?per_page=10000');
+
+  useEffect(() => {
+    const fn = async () => {
+      const resp = await request();
+      if (resp.ok) {
+        setNames(new Set(resp.data.map(t => t.name)));
+      }
+    };
+    fn();
+  }, [request]);
+
+  return names;
+};
+
 export const useGetTaskQueue = () => {
   const [tasks, setTasks] = useState<TaskQueueEntry[]>([]);
   const [state, request] = useFlexgetAPI<TaskQueueEntry[]>(`/tasks/queue`);
