@@ -76,3 +76,28 @@ with MUI Box's `css` prop, causing a TS error at component definition time.
   the project moves to Node 18+.
 - The static server (`scripts/serve-dist.js`) substitutes `{{ base_url }}/` with `/` in
   `index.html` and returns `401` for all `/api/*` paths so the login form renders correctly.
+
+## TypeScript generics and heterogeneous useMemo arrays
+When a `useMemo` returns an array that spreads two differently-shaped objects
+(e.g. one branch has `field: number`, another has `field: undefined`), TypeScript
+can't infer a single `T` for a generic prop like `Row<T>[]`. Fix: add an explicit
+return type annotation to the `useMemo` callback:
+```ts
+const rows = useMemo(
+  (): Array<{ key: React.Key; data: { [key: string]: React.ReactNode }; props?: ... }> => {
+    ...
+  },
+  [...deps],
+);
+```
+
+## MUI variant values differ by component
+Input components (`TextField`, `FormControl`) accept `variant: "standard" | "outlined" | "filled"`.
+`Button` accepts `variant: "text" | "outlined" | "contained"`.
+These are different prop sets — avoid `replace_all` across both component types when
+only targeting one.
+
+## Fetching complete record sets
+Flexget's paginated endpoints default to a small page size. When you need the full
+set for a client-side comparison (e.g. all executed task names), use `?per_page=10000`
+to fetch in one request rather than paginating.
