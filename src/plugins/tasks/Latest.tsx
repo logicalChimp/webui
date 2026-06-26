@@ -3,7 +3,7 @@ import { Formik } from 'formik';
 import { useHistory, useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
 import { FormControlLabel, IconButton, Switch, Tooltip } from '@material-ui/core';
-import { CheckCircle, Error, RadioButtonUnchecked, Update } from '@material-ui/icons';
+import { CheckCircle, Edit, Error, RadioButtonUnchecked, Update } from '@material-ui/icons';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { Direction } from 'utils/query';
 import { useContainer } from 'unstated-next';
@@ -91,6 +91,19 @@ const Latest: FC = () => {
     }> => {
     const configNames = new Set(configTasks.map(t => t.name));
 
+    const makeEditButton = (name: string) => (
+      <Tooltip title="Edit this Task">
+        <IconButton
+          size="small"
+          component={Link}
+          to={`/series-picker?task=${encodeURIComponent(name)}`}
+          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
+        >
+          <Edit fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+
     const makeBackfillButton = (name: string) => (
       <Tooltip title="Backfill missing episodes for series in this task">
         <IconButton
@@ -102,6 +115,13 @@ const Latest: FC = () => {
           <Update fontSize="small" />
         </IconButton>
       </Tooltip>
+    );
+
+    const makeActionButtons = (name: string) => (
+      <span style={{ display: 'flex', alignItems: 'center' }}>
+        {makeEditButton(name)}
+        {makeBackfillButton(name)}
+      </span>
     );
 
     return [
@@ -119,32 +139,35 @@ const Latest: FC = () => {
             succeeded,
             abortReason,
           },
-        }) => ({
-          key: id,
-          data: {
-            [SortByStatus.ID]: id,
-            [SortByStatus.Name]: name,
-            [SortByStatus.LastExecutionTime]: start,
-            [SortByStatus.Start]: start,
-            [SortByStatus.End]: end,
-            [SortByStatus.Produced]: produced,
-            [SortByStatus.Rejected]: rejected,
-            [SortByStatus.Accepted]: accepted,
-            [SortByStatus.Failed]: failed,
-            [SortByStatus.AbortReason]: abortReason,
-            [SortByStatus.Succeeded]: succeeded ? (
-              <CheckCircle fontSize="small" color="primary" />
-            ) : (
-              <Error fontSize="small" color="error" />
-            ),
-            [SortByStatus.Backfill]: makeBackfillButton(name),
-            deleted: !configNames.has(name),
-          },
-          props: {
-            onClick: () => push(`${url}/${id}`),
-            hover: true,
-          },
-        }),
+        }) => {
+          const deleted = !configNames.has(name);
+          return {
+            key: id,
+            data: {
+              [SortByStatus.ID]: id,
+              [SortByStatus.Name]: name,
+              [SortByStatus.LastExecutionTime]: start,
+              [SortByStatus.Start]: start,
+              [SortByStatus.End]: end,
+              [SortByStatus.Produced]: produced,
+              [SortByStatus.Rejected]: rejected,
+              [SortByStatus.Accepted]: accepted,
+              [SortByStatus.Failed]: failed,
+              [SortByStatus.AbortReason]: abortReason,
+              [SortByStatus.Succeeded]: succeeded ? (
+                <CheckCircle fontSize="small" color="primary" />
+              ) : (
+                <Error fontSize="small" color="error" />
+              ),
+              [SortByStatus.Backfill]: deleted ? makeBackfillButton(name) : makeActionButtons(name),
+              deleted,
+            },
+            props: {
+              onClick: () => push(`${url}/${id}`),
+              hover: true,
+            },
+          };
+        },
       ),
       ...unexecutedTasks.map(({ name }) => ({
         key: `unexecuted-${name}`,
@@ -160,7 +183,7 @@ const Latest: FC = () => {
           [SortByStatus.Failed]: undefined,
           [SortByStatus.AbortReason]: undefined,
           [SortByStatus.Succeeded]: <RadioButtonUnchecked fontSize="small" color="disabled" />,
-          [SortByStatus.Backfill]: makeBackfillButton(name),
+          [SortByStatus.Backfill]: makeActionButtons(name),
           deleted: false,
         },
       })),

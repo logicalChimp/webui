@@ -53,6 +53,12 @@ with MUI Box's `css` prop, causing a TS error at component definition time.
   (the HTTP status text), so a `?? 'Unknown error'` fallback is never reached that way.
   To test the unknown-error path, mock the hook directly:
   `jest.spyOn(hooks, 'useCreate...').mockReturnValue([..., jest.fn().mockResolvedValue({ ok: false, error: undefined })])`
+- `useFlexgetAPI` camelizes response keys, including user-defined ones (e.g., `GroupA` → `groupA`).
+  In test fixtures that contain domain-defined keys (group names, etc.), use all-lowercase or
+  already-camelCase names so the fixture value matches what Formik and the DOM actually see.
+- To inspect the body of a specific fetchMock call, filter by URL and method then parse:
+  `const calls = fetchMock.calls().filter(([url, opts]) => url === '/api/foo' && opts?.method === 'put');`
+  `const body = JSON.parse(calls[0][1].body as string);`
 
 ## Build and packaging
 - Local production build: `./package.sh` — runs Webpack, outputs to `dist/`, zips to `dist.zip`
