@@ -83,7 +83,12 @@ const Latest: FC = () => {
     [configTasks, allExecutedNames],
   );
 
-  const rows = useMemo(() => {
+  const rows = useMemo(
+    (): Array<{
+      key: React.Key;
+      data: { deleted: boolean; [key: string]: React.ReactNode };
+      props?: { onClick?: () => void; hover?: boolean };
+    }> => {
     const configNames = new Set(configTasks.map(t => t.name));
 
     const makeBackfillButton = (name: string) => (
