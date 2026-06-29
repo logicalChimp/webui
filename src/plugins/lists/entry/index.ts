@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'Entry List',
     icon: ViewList,
+    group: '/lists',
   });

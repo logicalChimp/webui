@@ -6,3 +6,11 @@ export interface Route {
   Icon: ComponentType;
   path: string;
 }
+
+export interface NavRoute {
+  component?: ComponentType;
+  name: string;
+  Icon: ComponentType;
+  path: string;
+  children?: NavRoute[];
+}

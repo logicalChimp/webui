@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'Log',
     icon: ListAltIcon,
+    group: '/server',
   });

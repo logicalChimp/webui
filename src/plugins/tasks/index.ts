@@ -2,8 +2,13 @@ import { lazy } from 'react';
 import { registerPlugin } from 'core/plugins/registry';
 import { Assignment } from '@material-ui/icons';
 
-export default () =>
+export default () => {
   registerPlugin('/tasks', {
+    displayName: 'Tasks',
+    icon: Assignment,
+  });
+
+  registerPlugin('/tasks/executions', {
     component: lazy(
       () =>
         import(
@@ -11,8 +16,9 @@ export default () =>
           'plugins/tasks/Tasks'
         ),
     ),
-    displayName: 'Tasks',
+    displayName: 'Latest Executions',
     icon: Assignment,
+    group: '/tasks',
     cardComponent: lazy(
       () =>
         import(
@@ -21,3 +27,4 @@ export default () =>
         ),
     ),
   });
+};

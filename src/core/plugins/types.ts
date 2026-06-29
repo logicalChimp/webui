@@ -5,6 +5,7 @@ export interface Plugin {
   displayName: string;
   icon: ComponentType;
   cardComponent?: ComponentType;
+  group?: string;
 }
 export type PluginMap = Record<string, Plugin>;
 export type PluginUpdateHandler = (e: CustomEvent<PluginMap>) => void;

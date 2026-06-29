@@ -54,6 +54,53 @@ export const hideVersion = css`
   opacity: 0;
 `;
 
+export const accordionRoot = (theme: Theme) => css`
+  background-color: transparent;
+  box-shadow: none;
+  color: ${theme.palette.secondary.light};
+
+  &::before {
+    display: none;
+  }
+
+  &.Mui-expanded {
+    margin: 0;
+  }
+
+  & .MuiExpansionPanelSummary-root {
+    padding: 0 16px;
+    min-height: 48px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+      border-left: 3px solid ${theme.palette.primary.main};
+    }
+
+    &.Mui-expanded {
+      min-height: 48px;
+    }
+  }
+
+  & .MuiExpansionPanelSummary-content {
+    margin: 0;
+    align-items: center;
+
+    &.Mui-expanded {
+      margin: 0;
+    }
+  }
+
+  & .MuiExpansionPanelSummary-expandIcon {
+    color: ${theme.palette.secondary.light};
+  }
+
+  & .MuiExpansionPanelDetails-root {
+    padding: 0 0 0 ${theme.spacing(2)}px;
+    flex-direction: column;
+  }
+`;
+
 export const logoWrapper = (theme: Theme) => css`
   display: flex;
   justify-content: space-between;

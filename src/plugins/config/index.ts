@@ -16,4 +16,5 @@ export default () =>
     }),
     displayName: 'Config',
     icon: CreateTwoTone,
+    group: '/server',
   });
