@@ -1,5 +1,5 @@
 import YAML from 'yaml';
-import { FormValues } from './types';
+import { FormValues } from './backfillEpisodesTypes';
 
 export const toKebabCase = (str: string): string =>
   str

@@ -1,5 +1,5 @@
 import React, { FC, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useRouteMatch } from 'react-router';
 import { Formik, Form, useFormikContext } from 'formik';
 import {
   Box,
@@ -19,11 +19,13 @@ import { DragHandle, ExpandLess, ExpandMore } from '@material-ui/icons';
 import { css } from '@emotion/core';
 import YAML from 'yaml';
 import TextField from 'common/inputs/formik/TextField';
+import { NoPaddingWrapper } from 'common/styles';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { useFlexgetStream } from 'core/api';
 import { Method, camelize } from 'utils/fetch';
-import { useGetTaskConfig, useUpdateTaskConfig } from './hooks';
-import { extractGroupNames, applySelectedSeries } from './utils';
+import { useGetTaskConfig, useUpdateTaskConfig } from './addSeriesHooks';
+import { extractGroupNames, applySelectedSeries } from './addSeriesUtils';
+import SubNav from './SubNav';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -323,14 +325,15 @@ const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchS
 // Root component
 // ---------------------------------------------------------------------------
 
-const SeriesPicker: FC = () => {
-  const taskParam = new URLSearchParams(useLocation().search).get('task');
-  useInjectPageTitle(`Series Picker${taskParam ? `: ${taskParam}` : ''}`);
+const AddSeries: FC = () => {
+  useInjectPageTitle('Tasks - Manage Task');
+  const match = useRouteMatch<{ taskId: string }>('/tasks/add-series/:taskId');
+  const taskId = match?.params.taskId ?? '';
 
   const [availableSeries, setAvailableSeries] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
-  const { config: taskConfig } = useGetTaskConfig(taskParam ?? '');
-  const [, updateTaskConfig] = useUpdateTaskConfig(taskParam ?? '');
+  const { config: taskConfig } = useGetTaskConfig(taskId);
+  const [, updateTaskConfig] = useUpdateTaskConfig(taskId);
   const [{ stream }, { connect }] = useFlexgetStream('/tasks/execute', Method.Post);
   const episodeOneOnlyRef = useRef(false);
 
@@ -356,18 +359,18 @@ const SeriesPicker: FC = () => {
   }, [stream]);
 
   const handleFetchSeries = useCallback((episodeOneOnly: boolean) => {
-    if (!taskParam) return;
+    if (!taskId) return;
     episodeOneOnlyRef.current = episodeOneOnly;
     setAvailableSeries([]);
     setFetching(true);
     connect({
-      tasks: [taskParam],
+      tasks: [taskId],
       entryDump: true,
       secondGuessMetadata: true,
       noCache: true,
       now: true,
     });
-  }, [connect, taskParam]);
+  }, [connect, taskId]);
 
   const initialValues: FormValues = {
     taskConfig,
@@ -376,22 +379,25 @@ const SeriesPicker: FC = () => {
   };
 
   return (
-    <Formik
-      initialValues={initialValues}
-      enableReinitialize
-      onSubmit={async values => {
-        if (!values.updatedTaskConfig) return;
-        try {
-          const json: Record<string, any> = YAML.parse(values.updatedTaskConfig);
-          await updateTaskConfig(json);
-        } catch (err) {
-          console.error('Failed to update task config:', err);
-        }
-      }}
-    >
-      <SeriesPickerForm availableSeries={availableSeries} onFetchSeries={handleFetchSeries} />
-    </Formik>
+    <NoPaddingWrapper>
+      <SubNav />
+      <Formik
+        initialValues={initialValues}
+        enableReinitialize
+        onSubmit={async values => {
+          if (!values.updatedTaskConfig) return;
+          try {
+            const json: Record<string, any> = YAML.parse(values.updatedTaskConfig);
+            await updateTaskConfig(json);
+          } catch (err) {
+            console.error('Failed to update task config:', err);
+          }
+        }}
+      >
+        <SeriesPickerForm availableSeries={availableSeries} onFetchSeries={handleFetchSeries} />
+      </Formik>
+    </NoPaddingWrapper>
   );
 };
 
-export default SeriesPicker;
+export default AddSeries;
