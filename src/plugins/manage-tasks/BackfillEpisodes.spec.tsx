@@ -5,11 +5,9 @@ import { useHistory, Route, Switch } from 'react-router';
 import fetchMock from 'fetch-mock';
 import YAML from 'yaml';
 import { renderWithWrapper } from 'utils/tests';
-import AppBar from 'core/layout/AppBar';
-import { TaskContainer } from 'plugins/tasks/hooks';
 import * as coreApi from 'core/api';
-import * as backfillHooks from './hooks';
-import Backfill from './Backfill';
+import * as backfillHooks from './backfillEpisodesHooks';
+import BackfillEpisodes from './BackfillEpisodes';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,16 +17,13 @@ interface Props {
   path: string;
 }
 
-const TestBackfill: FC<Props> = ({ path }) => {
+const TestBackfillEpisodes: FC<Props> = ({ path }) => {
   const { push } = useHistory();
   useEffect(() => { push(path); }, [path, push]);
   return (
-    <TaskContainer.Provider>
-      <AppBar toggleSidebar={jest.fn()} />
-      <Switch>
-        <Route path="/backfill"><Backfill /></Route>
-      </Switch>
-    </TaskContainer.Provider>
+    <Switch>
+      <Route path="/tasks/backfill-episodes"><BackfillEpisodes /></Route>
+    </Switch>
   );
 };
 
@@ -75,7 +70,7 @@ const pickSeriesOption = (container: HTMLElement, text: string) =>
 // Setup
 // ---------------------------------------------------------------------------
 
-describe('plugins/backfill/Backfill', () => {
+describe('plugins/manage-tasks/BackfillEpisodes', () => {
   beforeAll(() => jest.setTimeout(15000));
   afterAll(() => jest.setTimeout(5000));
 
@@ -112,7 +107,6 @@ describe('plugins/backfill/Backfill', () => {
     ]);
 
     fetchMock
-      .get('/api/tasks', [])
       .get('/api/tasks/test-task', taskConfig)
       .post('/api/tasks', 200)
       .delete('/api/tasks/test-task-backfill', 204)
@@ -130,28 +124,36 @@ describe('plugins/backfill/Backfill', () => {
   // -------------------------------------------------------------------------
 
   describe('initial state', () => {
-    it('derives taskName from the task query param', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+    it('derives taskName from the route param', async () => {
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
       expect(getField(container, 'taskName')?.value).toBe('test-task-backfill');
     });
 
     it('initialises rssBackfillUrl from the loaded task config', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
       expect(getField(container, 'rssBackfillUrl')?.value).toBe(
         'http://source.example.com/rss?q=base&cat=1',
       );
     });
 
-    it('shows "No task selected" in taskConfig when no task param', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill" />);
+    it('shows "No task selected" in taskConfig when no route param', async () => {
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes" />,
+      );
       await wait(() => expect(getField(container, 'taskConfig')).not.toBeNull());
       expect(getField(container, 'taskConfig')?.value).toBe('No task selected');
     });
 
     it('auto-update checkbox is checked after config loads', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
       const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
       expect(checkbox.checked).toBe(true);
@@ -165,26 +167,25 @@ describe('plugins/backfill/Backfill', () => {
   describe('Task Series dropdown', () => {
     it('appears when the config contains a series key', async () => {
       const { queryByText, container } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
       expect(queryByText('Task Series')).toBeInTheDocument();
     });
 
     it('shows a disabled Select with placeholder text when the config has no series key', async () => {
-      fetchMock.restore().get('/api/tasks', []).get('/api/tasks/no-series-task', {
+      fetchMock.restore().get('/api/tasks/no-series-task', {
         config: { rss: 'http://x.com' },
         name: 'no-series-task',
       }).catch();
       const { queryByText, container } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=no-series-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/no-series-task" />,
       );
       await wait(() => {
         const el = getField(container, 'taskConfig');
         expect(el?.value).toContain('no-series-task');
       }, { timeout: 8000 });
       expect(queryByText('No series found in Source Task Config')).toBeInTheDocument();
-      // The InputBase wrapping the Task Series Select should carry the Mui-disabled class
       const seriesSelectRoot = container.querySelectorAll('.MuiSelect-root')[TASK_SERIES_SELECT_INDEX];
       expect(seriesSelectRoot.closest('.MuiInputBase-root')).toHaveClass('Mui-disabled');
       expect(getField(container, 'extras')).toBeInTheDocument();
@@ -197,7 +198,9 @@ describe('plugins/backfill/Backfill', () => {
 
   describe('Auto-update: Backfill Task Name', () => {
     it('does NOT update taskName when auto-update is unchecked', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Uncheck auto-update (starts checked after config loads)
@@ -208,7 +211,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates taskName when auto-update is checked before series selection', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // auto-update checkbox is already checked after config loads
@@ -220,7 +225,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates taskName immediately when auto-update is checked after series already selected', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Uncheck so picking series does not immediately update taskName
@@ -235,7 +242,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('does not update taskName when auto-update is toggled off with no series selected', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Click to uncheck (starts checked after config loads); no series selected — taskName unchanged
@@ -246,7 +255,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates taskName to extras-only when auto-update is on with no series selected', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // auto-update checkbox is already checked after config loads
@@ -258,7 +269,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates taskName when extras changes while auto-update is on and series is already selected', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // auto-update checkbox is already checked after config loads
@@ -275,7 +288,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates taskName immediately when auto-update is toggled on after both series and extras are already set', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Uncheck auto-update first so picking series/extras does not immediately update taskName
@@ -302,7 +317,7 @@ describe('plugins/backfill/Backfill', () => {
   describe('Auto-update: RSS URL', () => {
     it('shows a snackbar when the disabled auto-update area is clicked', async () => {
       const { container, queryByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -319,7 +334,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates rssBackfillUrl when the selected query param is changed', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       await pickSelectOption(container, QUERY_PARAM_SELECT_INDEX, 'q');
@@ -338,7 +355,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates rssBackfillUrl immediately when query param is selected after series is already set', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Pick series first — encodedSeriesName is now populated
@@ -354,7 +373,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('updates rssBackfillUrl to reflect combined series and extras when auto-update is enabled', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       // Pick query param 'q' — auto-update checkbox is checked automatically on first selection
@@ -380,7 +401,9 @@ describe('plugins/backfill/Backfill', () => {
 
   describe('Backfill Task Config auto-computation', () => {
     it('reflects updated rssBackfillUrl in backfillTaskConfig', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       fireEvent.change(getField(container, 'rssBackfillUrl')!, {
@@ -394,7 +417,9 @@ describe('plugins/backfill/Backfill', () => {
     });
 
     it('reflects updated taskName in backfillTaskConfig', async () => {
-      const { container } = renderWithWrapper(<TestBackfill path="/backfill?task=test-task" />);
+      const { container } = renderWithWrapper(
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
+      );
       await waitForConfig(container);
 
       fireEvent.change(getField(container, 'taskName')!, {
@@ -414,9 +439,9 @@ describe('plugins/backfill/Backfill', () => {
 
   describe('form validation', () => {
     it('does not call createTask when required fields are missing', async () => {
-      fetchMock.restore().get('/api/tasks', []).get('/api/tasks/test-task', taskConfig).catch();
+      fetchMock.restore().get('/api/tasks/test-task', taskConfig).catch();
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes" />,
       );
       await wait(() => expect(getField(container, 'taskConfig')).not.toBeNull());
 
@@ -436,7 +461,7 @@ describe('plugins/backfill/Backfill', () => {
   describe('submit: happy path', () => {
     it('calls create, execute, and delete APIs in order and logs each step', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -469,7 +494,7 @@ describe('plugins/backfill/Backfill', () => {
 
     it('passes the correct config body to createTask', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -490,14 +515,14 @@ describe('plugins/backfill/Backfill', () => {
 
     it('appends progress events to the execution log', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
       fireEvent.change(getField(container, 'rssBackfillUrl')!, {
         target: { value: 'http://backfill.example.com/rss' },
       });
       fireEvent.click(getByText('Backfill').closest('button')!);
-      await wait(() => expect(getField(container, 'executionLog')?.value).toContain("Executing"));
+      await wait(() => expect(getField(container, 'executionLog')?.value).toContain('Executing'));
 
       act(() => {
         capturedNodeHandlers['{progress}']?.({
@@ -512,14 +537,14 @@ describe('plugins/backfill/Backfill', () => {
 
     it('appends a non-aborted summary to the execution log', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
       fireEvent.change(getField(container, 'rssBackfillUrl')!, {
         target: { value: 'http://backfill.example.com/rss' },
       });
       fireEvent.click(getByText('Backfill').closest('button')!);
-      await wait(() => expect(getField(container, 'executionLog')?.value).toContain("Executing"));
+      await wait(() => expect(getField(container, 'executionLog')?.value).toContain('Executing'));
 
       act(() => {
         capturedNodeHandlers['{summary}']?.({
@@ -536,14 +561,14 @@ describe('plugins/backfill/Backfill', () => {
 
     it('appends an aborted summary to the execution log', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
       fireEvent.change(getField(container, 'rssBackfillUrl')!, {
         target: { value: 'http://backfill.example.com/rss' },
       });
       fireEvent.click(getByText('Backfill').closest('button')!);
-      await wait(() => expect(getField(container, 'executionLog')?.value).toContain("Executing"));
+      await wait(() => expect(getField(container, 'executionLog')?.value).toContain('Executing'));
 
       act(() => {
         capturedNodeHandlers['{summary}']?.({
@@ -567,14 +592,13 @@ describe('plugins/backfill/Backfill', () => {
     it('deletes using the edited taskName, not the default', async () => {
       fetchMock
         .restore()
-        .get('/api/tasks', [])
         .get('/api/tasks/test-task', taskConfig)
         .post('/api/tasks', 200)
         .delete('/api/tasks/custom-name', 204)
         .catch();
 
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -608,13 +632,12 @@ describe('plugins/backfill/Backfill', () => {
     it('logs the error and does not connect when createTask fails', async () => {
       fetchMock
         .restore()
-        .get('/api/tasks', [])
         .get('/api/tasks/test-task', taskConfig)
         .post('/api/tasks', { status: 409, body: { message: 'Conflict' } })
         .catch();
 
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -638,7 +661,7 @@ describe('plugins/backfill/Backfill', () => {
       ] as any);
 
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -654,7 +677,7 @@ describe('plugins/backfill/Backfill', () => {
 
     it('logs "Task execution failed." and still calls deleteTask when stream fails', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -663,7 +686,7 @@ describe('plugins/backfill/Backfill', () => {
       });
       fireEvent.click(getByText('Backfill').closest('button')!);
 
-      await wait(() => expect(getField(container, 'executionLog')?.value).toContain("Executing"));
+      await wait(() => expect(getField(container, 'executionLog')?.value).toContain('Executing'));
 
       act(() => { capturedFailCallback?.(); });
 
@@ -677,14 +700,13 @@ describe('plugins/backfill/Backfill', () => {
     it('logs a delete error when deleteTask fails', async () => {
       fetchMock
         .restore()
-        .get('/api/tasks', [])
         .get('/api/tasks/test-task', taskConfig)
         .post('/api/tasks', 200)
         .delete('/api/tasks/test-task-backfill', { status: 404, body: { message: 'Not Found' } })
         .catch();
 
       const { container, getByText } = renderWithWrapper(
-        <TestBackfill path="/backfill?task=test-task" />,
+        <TestBackfillEpisodes path="/tasks/backfill-episodes/test-task" />,
       );
       await waitForConfig(container);
 
@@ -693,7 +715,7 @@ describe('plugins/backfill/Backfill', () => {
       });
       fireEvent.click(getByText('Backfill').closest('button')!);
 
-      await wait(() => expect(getField(container, 'executionLog')?.value).toContain("Executing"));
+      await wait(() => expect(getField(container, 'executionLog')?.value).toContain('Executing'));
 
       act(() => { capturedDoneCallback?.(); });
 

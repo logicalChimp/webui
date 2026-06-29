@@ -6,7 +6,7 @@ import fetchMock from 'fetch-mock';
 import YAML from 'yaml';
 import { renderWithWrapper } from 'utils/tests';
 import * as coreApi from 'core/api';
-import SeriesPicker from './SeriesPicker';
+import AddSeries from './AddSeries';
 
 // ---------------------------------------------------------------------------
 // Test wrapper
@@ -16,12 +16,12 @@ interface Props {
   path: string;
 }
 
-const TestSeriesPicker: FC<Props> = ({ path }) => {
+const TestAddSeries: FC<Props> = ({ path }) => {
   const { push } = useHistory();
   useEffect(() => { push(path); }, [path, push]);
   return (
     <Switch>
-      <Route path="/series-picker"><SeriesPicker /></Route>
+      <Route path="/tasks/add-series"><AddSeries /></Route>
     </Switch>
   );
 };
@@ -74,11 +74,16 @@ const openSelect = (container: HTMLElement, index: number) => {
 
 const getPortalOptions = () => Array.from(document.querySelectorAll('[role="option"]'));
 
+// The SubNav also renders an "Add Series" tab (a button), so we must exclude MuiTab-root.
+const getAddSeriesButton = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('button'))
+    .find(btn => btn.textContent?.trim() === 'Add Series' && !btn.classList.contains('MuiTab-root')) ?? null;
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
-describe('plugins/series-picker/SeriesPicker', () => {
+describe('plugins/manage-tasks/AddSeries', () => {
   beforeAll(() => jest.setTimeout(15000));
   afterAll(() => jest.setTimeout(5000));
 
@@ -133,14 +138,14 @@ describe('plugins/series-picker/SeriesPicker', () => {
   describe('initial state', () => {
     it('loads task config from the API and shows it in the taskConfig field', async () => {
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
     });
 
     it('Available Series select is disabled before Fetch Series is clicked', async () => {
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -149,18 +154,17 @@ describe('plugins/series-picker/SeriesPicker', () => {
     });
 
     it('Add Series button is disabled when no series are selected', async () => {
-      const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+      const { container } = renderWithWrapper(
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
-      const addBtn = getByText('Add Series').closest('button');
-      expect(addBtn).toBeDisabled();
+      expect(getAddSeriesButton(container)).toBeDisabled();
     });
 
     it('episode 1 toggle is checked by default', async () => {
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -176,7 +180,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
   describe('Source Series Groups', () => {
     it('is disabled with placeholder text when config has a flat series array', async () => {
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -189,7 +193,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
       fetchMock.restore().get('/api/tasks/test-task', objectGroupTaskConfig).put('/api/tasks/test-task', 200).catch();
 
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, objectGroupTaskConfig);
 
@@ -202,7 +206,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
       fetchMock.restore().get('/api/tasks/test-task', arrayGroupTaskConfig).put('/api/tasks/test-task', 200).catch();
 
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, arrayGroupTaskConfig);
 
@@ -216,7 +220,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('updates when taskConfig textarea is edited to add groups', async () => {
       const { container } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -240,7 +244,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
   describe('Fetch Series', () => {
     it('calls connect with the task name and correct flags when Fetch Series is clicked', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -257,7 +261,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('sets the cursor to wait while fetching and resets it when the stream completes', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -270,7 +274,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('resets the cursor when the stream fails', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -283,7 +287,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('populates Available Series from entry_dump, filtering to episode 1 when toggle is ON', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -309,7 +313,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('does not filter by episode when the toggle is switched OFF', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -337,7 +341,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('deduplicates series names across multiple entry_dump events', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -365,7 +369,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('sorts Available Series alphabetically', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -400,7 +404,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
   describe('Add Series', () => {
     it('appends selected series to the task config and writes to updatedTaskConfig', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -424,10 +428,10 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
       // Add Series button should now be enabled
       await wait(() => {
-        expect(getByText('Add Series').closest('button')).not.toBeDisabled();
+        expect(getAddSeriesButton(container)).not.toBeDisabled();
       });
 
-      fireEvent.click(getByText('Add Series').closest('button')!);
+      fireEvent.click(getAddSeriesButton(container)!);
 
       await wait(() => {
         const updatedField = getField(container, 'updatedTaskConfig') as HTMLTextAreaElement;
@@ -446,7 +450,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
   describe('Update Task', () => {
     it('PUTs the full updatedTaskConfig as JSON to the API', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -474,7 +478,7 @@ describe('plugins/series-picker/SeriesPicker', () => {
 
     it('does not call the API when updatedTaskConfig is empty', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestSeriesPicker path="/series-picker?task=test-task" />,
+        <TestAddSeries path="/tasks/add-series/test-task" />,
       );
       await waitForConfig(container, flatTaskConfig);
 

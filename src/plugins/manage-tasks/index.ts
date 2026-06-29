@@ -21,7 +21,7 @@ export default () => {
       () =>
         import(
           /* webpackChunkName: 'ManageTasksPlugin' */
-          './SelectSeries'
+          './AddSeries'
         ),
     ),
     displayName: 'Add Series',

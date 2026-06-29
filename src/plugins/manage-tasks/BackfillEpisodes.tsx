@@ -24,8 +24,8 @@ import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { useFlexgetStream } from 'core/api';
 import { Method, camelize } from 'utils/fetch';
 import TextField from 'common/inputs/formik/TextField';
-import { useGetTaskConfig, useCreateTask, useDeleteTask } from '../backfill/hooks';
-import { FormValues } from '../backfill/types';
+import { useGetTaskConfig, useCreateTask, useDeleteTask } from './backfillEpisodesHooks';
+import { FormValues } from './backfillEpisodesTypes';
 import {
   replaceRssUrl,
   replaceTaskName,
@@ -37,7 +37,7 @@ import {
   buildEncodedSeriesName,
   buildAutoTaskName,
   validate,
-} from '../backfill/utils';
+} from './backfillEpisodesUtils';
 import SubNav from './SubNav';
 
 // ---------------------------------------------------------------------------
