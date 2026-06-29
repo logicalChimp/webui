@@ -96,7 +96,7 @@ const Latest: FC = () => {
         <IconButton
           size="small"
           component={Link}
-          to={`/series-picker?task=${encodeURIComponent(name)}`}
+          to={`/tasks/edit-task/${encodeURIComponent(name)}`}
           onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
         >
           <Edit fontSize="small" />
@@ -109,7 +109,7 @@ const Latest: FC = () => {
         <IconButton
           size="small"
           component={Link}
-          to={`/backfill?task=${encodeURIComponent(name)}`}
+          to={`/tasks/backfill-episodes/${encodeURIComponent(name)}`}
           onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
         >
           <Update fontSize="small" />
