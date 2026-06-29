@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'Movie List',
     icon: MovieOutlined,
+    group: '/lists',
   });

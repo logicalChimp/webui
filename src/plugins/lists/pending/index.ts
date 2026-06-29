@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'Pending List',
     icon: CheckIcon,
+    group: '/lists',
   });

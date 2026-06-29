@@ -13,7 +13,7 @@ describe('core/layout/SideNavEntry', () => {
   });
 
   it('renders correctly without link', () => {
-    const tree = renderer.create(themed(<Entry Icon={SVGIcon} name="Test" />)).toJSON();
+    const tree = renderer.create(router(themed(<Entry Icon={SVGIcon} name="Test" />))).toJSON();
     expect(tree).toMatchSnapshot();
   });
 });

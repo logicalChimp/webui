@@ -54,6 +54,64 @@ export const hideVersion = css`
   opacity: 0;
 `;
 
+export const activeNavItem = (theme: Theme) => css`
+  border-left: 3px solid ${theme.palette.primary.main};
+  background-color: ${rgba(theme.palette.primary.main, 0.12)};
+`;
+
+export const accordionRoot = (theme: Theme) => css`
+  background-color: transparent;
+  box-shadow: none;
+  color: ${theme.palette.secondary.light};
+
+  &::before {
+    display: none;
+  }
+
+  &.Mui-expanded {
+    margin: 0;
+  }
+
+  & .MuiExpansionPanelSummary-root {
+    padding: 0 16px;
+    min-height: 48px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &.Mui-expanded {
+      min-height: 48px;
+    }
+  }
+
+  & .MuiExpansionPanelSummary-content {
+    margin: 0;
+    align-items: center;
+
+    &.Mui-expanded {
+      margin: 0;
+    }
+  }
+
+  & .MuiExpansionPanelSummary-expandIcon {
+    color: ${theme.palette.secondary.light};
+  }
+
+  & .MuiExpansionPanelDetails-root {
+    padding: 0 0 0 ${theme.spacing(2)}px;
+    flex-direction: column;
+  }
+`;
+
+export const accordionSummaryActive = (theme: Theme) => css`
+  & .MuiExpansionPanelSummary-root {
+    border-left: 3px solid ${theme.palette.primary.main};
+  }
+`;
+
 export const logoWrapper = (theme: Theme) => css`
   display: flex;
   justify-content: space-between;
