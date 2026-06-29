@@ -3,14 +3,22 @@ import { Settings } from '@material-ui/icons';
 import { registerPlugin } from 'core/plugins/registry';
 
 export default () =>
-  registerPlugin('settings', {
+  registerPlugin('/server/summary', {
+    component: lazy(
+      () =>
+        import(
+          /* webpackChunkName: 'ServerSummaryPlugin' */
+          './Summary'
+        ),
+    ),
     cardComponent: lazy(
       () =>
         import(
-          /* webpackChunkName: 'LogPlugin' */
+          /* webpackChunkName: 'ServerSettingsCard' */
           './Card'
         ),
     ),
-    displayName: 'Server Settings',
+    displayName: 'Summary',
     icon: Settings,
+    group: '/server',
   });

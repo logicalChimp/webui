@@ -20,7 +20,7 @@ const TestTasks: FC<Props> = ({ path }) => {
     <TaskContainer.Provider>
       <AppBar toggleSidebar={jest.fn()} />
       <Switch>
-        <Route path="/tasks">
+        <Route path="/tasks/executions">
           <Tasks />
         </Route>
       </Switch>
@@ -46,8 +46,8 @@ describe('plugins/tasks', () => {
   describe('contextual app bar', () => {
     describe.each`
       name            | title                          | path
-      ${'task'}       | ${'Tasks - Latest Executions'} | ${'/tasks'}
-      ${'executions'} | ${'Task Executions'}           | ${'/tasks/1'}
+      ${'task'}       | ${'Tasks - Latest Executions'} | ${'/tasks/executions'}
+      ${'executions'} | ${'Task Executions'}           | ${'/tasks/executions/1'}
     `('$name', ({ title, path }) => {
       it(`should have title ${title} on ${path}`, async () => {
         const { findByText } = renderWithWrapper(<TestTasks path={path} />);

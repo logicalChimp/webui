@@ -13,4 +13,5 @@ export default () =>
     ),
     displayName: 'History',
     icon: HistoryIcon,
+    group: '/server',
   });

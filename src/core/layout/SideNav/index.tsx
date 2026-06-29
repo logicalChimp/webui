@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useMemo, useState } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { css } from '@emotion/core';
 import {
   Drawer,
@@ -11,13 +11,12 @@ import {
 } from '@material-ui/core';
 import { Settings } from '@material-ui/icons';
 
-import { useHistory } from 'react-router';
-import { Route } from 'core/routes/types';
-import { useGetRoutes } from 'core/routes/hooks';
+import { useLocation } from 'react-router';
+import { useGetNavRoutes } from 'core/routes/hooks';
 
 import Menu from 'core/layout/SideNav/Menu';
 import Version from './Version';
-import Entry from './Entry';
+import Entry, { AccordionEntry } from './Entry';
 import Logo from './Logo';
 import {
   drawerOpen,
@@ -36,10 +35,21 @@ interface Props {
 }
 
 const SideNav: FC<Props> = ({ sidebarOpen = false, onClose, className }) => {
-  const { routes } = useGetRoutes();
-  const history = useHistory();
+  const { navRoutes } = useGetNavRoutes();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('xs'));
+
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  // navRoutes is empty on first render (PluginContainer populates after an effect).
+  // Once routes arrive, initialise openGroup from the current pathname — but only if
+  // the user hasn't already made an explicit choice (prev !== null).
+  useEffect(() => {
+    if (!navRoutes.length) return;
+    const active = navRoutes.find(r => r.children?.some(c => location.pathname.startsWith(c.path)));
+    setOpenGroup(prev => prev ?? (active?.path ?? null));
+  }, [navRoutes, location.pathname]);
 
   const drawerCss = useMemo(() => (sidebarOpen ? drawerOpen(theme) : drawerClose(theme)), [
     sidebarOpen,
@@ -48,15 +58,9 @@ const SideNav: FC<Props> = ({ sidebarOpen = false, onClose, className }) => {
 
   const drawerRootCss = useMemo(() => [drawer(theme), drawerCss], [drawerCss, theme]);
 
-  const handleClick = useCallback(
-    ({ path }: Route) => () => {
-      if (isMobile) {
-        onClose();
-      }
-      history.push(path);
-    },
-    [history, isMobile, onClose],
-  );
+  const handleNavigate = useCallback(() => {
+    if (isMobile) onClose();
+  }, [isMobile, onClose]);
 
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement>();
 
@@ -92,9 +96,27 @@ const SideNav: FC<Props> = ({ sidebarOpen = false, onClose, className }) => {
             width: inherit;
           `}
         >
-          {routes.filter(route => !route.hidden).map(route => (
-            <Entry key={route.path} onClick={handleClick(route)} {...route} />
-          ))}
+          {navRoutes.map(route =>
+            route.children?.length ? (
+              <AccordionEntry
+                key={route.path}
+                name={route.name}
+                Icon={route.Icon}
+                children={route.children}
+                onNavigate={handleNavigate}
+                expanded={openGroup === route.path}
+                onToggle={isExpanded => setOpenGroup(isExpanded ? route.path : null)}
+              />
+            ) : (
+              <Entry
+                key={route.path}
+                path={route.path}
+                Icon={route.Icon}
+                name={route.name}
+                onClick={handleNavigate}
+              />
+            ),
+          )}
         </List>
         <div>
           <Divider css={divider} />
