@@ -3,7 +3,7 @@ import { Toolbar, Tabs, Tab } from '@material-ui/core';
 import { useHistory, useLocation, useRouteMatch } from 'react-router';
 
 const pages = [
-  { path: '/tasks/edit-task', label: 'Edit Task' },
+  { path: '/tasks/edit-task', label: 'Edit Task', createLabel: 'Create Task' },
   { path: '/tasks/add-series', label: 'Add Series' },
   { path: '/tasks/edit-schedule', label: 'Edit Schedule' },
   { path: '/tasks/backfill-episodes', label: 'Backfill Episodes' },
@@ -33,8 +33,8 @@ const SubNav: FC = () => {
         indicatorColor="primary"
         textColor="primary"
       >
-        {pages.map(({ path, label }) => (
-          <Tab key={path} label={label} />
+        {pages.map(p => (
+          <Tab key={p.path} label={!taskId && 'createLabel' in p ? p.createLabel : p.label} />
         ))}
       </Tabs>
     </Toolbar>
