@@ -74,7 +74,7 @@ const TaskExecutions: FC = () => {
   const { push } = useHistory();
 
   const onClick = useCallback(() => {
-    push('/tasks');
+    push('/tasks/executions');
   }, [push]);
 
   const icon = useMemo(

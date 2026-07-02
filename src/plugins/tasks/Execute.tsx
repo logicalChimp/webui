@@ -130,7 +130,7 @@ const Execute: FC<Props> = ({ tasks: taskStatuses, leftContent }) => {
         </div>
         <div>
           <Button onClick={open} color="primary" variant="contained">
-            Execute
+            Execute Tasks
           </Button>
         </div>
       </div>
