@@ -1,15 +1,14 @@
 import React, { FC, useMemo, useState } from 'react';
 import { Formik } from 'formik';
 import { useHistory, useRouteMatch } from 'react-router';
-import { Link } from 'react-router-dom';
-import { FormControlLabel, IconButton, Switch, Tooltip } from '@material-ui/core';
-import { CheckCircle, Edit, Error, RadioButtonUnchecked, Update } from '@material-ui/icons';
+import { FormControlLabel, Switch } from '@material-ui/core';
+import { CheckCircle, Error } from '@material-ui/icons';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { Direction } from 'utils/query';
 import { useContainer } from 'unstated-next';
 import { SortByStatus, TaskStatusOptions } from './types';
 import TaskTable from './TaskTable';
-import { useGetTaskStatuses, useGetAllExecutedTaskNames, TaskContainer } from './hooks';
+import { useGetTaskStatuses, TaskContainer } from './hooks';
 import Execute from './Execute';
 
 const headers = [
@@ -56,10 +55,6 @@ const headers = [
     id: SortByStatus.AbortReason,
     label: 'Abort Reason',
   },
-  {
-    id: SortByStatus.Backfill,
-    label: '',
-  },
 ];
 
 const Latest: FC = () => {
@@ -76,124 +71,54 @@ const Latest: FC = () => {
 
   const { tasks, total } = useGetTaskStatuses(options);
   const { tasks: configTasks } = useContainer(TaskContainer);
-  const allExecutedNames = useGetAllExecutedTaskNames();
 
-  const unexecutedTasks = useMemo(
-    () => configTasks.filter(t => !allExecutedNames.has(t.name)),
-    [configTasks, allExecutedNames],
-  );
-
-  const rows = useMemo(
-    (): Array<{
-      key: React.Key;
-      data: { deleted: boolean; [key: string]: React.ReactNode };
-      props?: { onClick?: () => void; hover?: boolean };
-    }> => {
+  const rows = useMemo((): Array<{
+    key: React.Key;
+    data: { deleted: boolean; [key: string]: React.ReactNode };
+    props?: { onClick?: () => void; hover?: boolean };
+  }> => {
     const configNames = new Set(configTasks.map(t => t.name));
 
-    const makeEditButton = (name: string) => (
-      <Tooltip title="Edit this Task">
-        <IconButton
-          size="small"
-          component={Link}
-          to={`/tasks/edit-task/${encodeURIComponent(name)}`}
-          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-        >
-          <Edit fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    );
-
-    const makeBackfillButton = (name: string) => (
-      <Tooltip title="Backfill missing episodes for series in this task">
-        <IconButton
-          size="small"
-          component={Link}
-          to={`/tasks/backfill-episodes/${encodeURIComponent(name)}`}
-          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-        >
-          <Update fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    );
-
-    const makeActionButtons = (name: string) => (
-      <span style={{ display: 'flex', alignItems: 'center' }}>
-        {makeEditButton(name)}
-        {makeBackfillButton(name)}
-      </span>
-    );
-
-    return [
-      ...tasks.map(
-        ({
-          name,
-          id,
-          lastExecution: {
-            start,
-            end,
-            produced,
-            rejected,
-            accepted,
-            failed,
-            succeeded,
-            abortReason,
+    return tasks.map(
+      ({
+        name,
+        id,
+        lastExecution: { start, end, produced, rejected, accepted, failed, succeeded, abortReason },
+      }) => {
+        const deleted = !configNames.has(name);
+        return {
+          key: id,
+          data: {
+            [SortByStatus.ID]: id,
+            [SortByStatus.Name]: name,
+            [SortByStatus.LastExecutionTime]: start,
+            [SortByStatus.Start]: start,
+            [SortByStatus.End]: end,
+            [SortByStatus.Produced]: produced,
+            [SortByStatus.Rejected]: rejected,
+            [SortByStatus.Accepted]: accepted,
+            [SortByStatus.Failed]: failed,
+            [SortByStatus.AbortReason]: abortReason,
+            [SortByStatus.Succeeded]: succeeded ? (
+              <CheckCircle fontSize="small" color="primary" />
+            ) : (
+              <Error fontSize="small" color="error" />
+            ),
+            deleted,
           },
-        }) => {
-          const deleted = !configNames.has(name);
-          return {
-            key: id,
-            data: {
-              [SortByStatus.ID]: id,
-              [SortByStatus.Name]: name,
-              [SortByStatus.LastExecutionTime]: start,
-              [SortByStatus.Start]: start,
-              [SortByStatus.End]: end,
-              [SortByStatus.Produced]: produced,
-              [SortByStatus.Rejected]: rejected,
-              [SortByStatus.Accepted]: accepted,
-              [SortByStatus.Failed]: failed,
-              [SortByStatus.AbortReason]: abortReason,
-              [SortByStatus.Succeeded]: succeeded ? (
-                <CheckCircle fontSize="small" color="primary" />
-              ) : (
-                <Error fontSize="small" color="error" />
-              ),
-              [SortByStatus.Backfill]: deleted ? makeBackfillButton(name) : makeActionButtons(name),
-              deleted,
-            },
-            props: {
-              onClick: () => push(`${url}/${id}`),
-              hover: true,
-            },
-          };
-        },
-      ),
-      ...unexecutedTasks.map(({ name }) => ({
-        key: `unexecuted-${name}`,
-        data: {
-          [SortByStatus.ID]: undefined,
-          [SortByStatus.Name]: name,
-          [SortByStatus.LastExecutionTime]: undefined,
-          [SortByStatus.Start]: undefined,
-          [SortByStatus.End]: undefined,
-          [SortByStatus.Produced]: undefined,
-          [SortByStatus.Rejected]: undefined,
-          [SortByStatus.Accepted]: undefined,
-          [SortByStatus.Failed]: undefined,
-          [SortByStatus.AbortReason]: undefined,
-          [SortByStatus.Succeeded]: <RadioButtonUnchecked fontSize="small" color="disabled" />,
-          [SortByStatus.Backfill]: makeActionButtons(name),
-          deleted: false,
-        },
-      })),
-    ];
-  }, [push, tasks, unexecutedTasks, url, configTasks]);
+          props: {
+            onClick: () => push(`${url}/${id}`),
+            hover: true,
+          },
+        };
+      },
+    );
+  }, [tasks, push, url, configTasks]);
 
-  const visibleRows = useMemo(
-    () => (showDeleted ? rows : rows.filter(r => !r.data.deleted)),
-    [rows, showDeleted],
-  );
+  const visibleRows = useMemo(() => (showDeleted ? rows : rows.filter(r => !r.data.deleted)), [
+    rows,
+    showDeleted,
+  ]);
 
   return (
     <>

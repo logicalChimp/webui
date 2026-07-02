@@ -17,7 +17,7 @@ import registerLists from 'plugins/lists';
 import registerPendingList from 'plugins/lists/pending';
 import registerMovieList from 'plugins/lists/movies';
 import registerEntryList from 'plugins/lists/entry';
-import registerManageTasks from 'plugins/manage-tasks';
+import registerManageTasks, { registerActiveTasks } from 'plugins/manage-tasks';
 import registerOperations from 'core/operations';
 import { AuthContainer } from 'core/auth/hooks';
 import { TaskContainer } from 'plugins/tasks/hooks';
@@ -31,6 +31,9 @@ registerOperations();
 registerHistory();
 registerLog();
 registerConfig();
+// Registered before registerTasks() so 'Active Tasks' sorts above
+// 'Latest Executions' in the 'Tasks' sidebar group.
+registerActiveTasks();
 registerTasks();
 registerSeries();
 registerServer();

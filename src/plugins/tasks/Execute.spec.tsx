@@ -50,12 +50,12 @@ describe('plugins/tasks/Execute', () => {
     it('should render execute button', () => {
       const { getByText } = renderWithWrapper(<Execute tasks={tasks} />);
 
-      expect(getByText('Execute').closest('button')).toBeInTheDocument();
+      expect(getByText('Execute Tasks').closest('button')).toBeInTheDocument();
     });
 
     it('should open the dialog if you click the button', () => {
       const { getByText, queryByRole } = renderWithWrapper(<Execute tasks={tasks} />);
-      const button = getByText('Execute').closest('button');
+      const button = getByText('Execute Tasks').closest('button');
 
       expect(queryByRole('dialog')).not.toBeInTheDocument();
       if (button) {
