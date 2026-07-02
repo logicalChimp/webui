@@ -12,6 +12,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   Switch,
   Theme,
 } from '@material-ui/core';
@@ -35,7 +36,7 @@ const wrapper = (theme: Theme) => css`
   margin: ${theme.typography.pxToRem(theme.spacing(2))};
   padding: ${theme.typography.pxToRem(theme.spacing(3))};
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${theme.typography.pxToRem(theme.spacing(3))};
   row-gap: ${theme.typography.pxToRem(theme.spacing(3))};
   align-items: start;
@@ -187,7 +188,9 @@ interface FormValues {
 
 interface SeriesPickerFormProps {
   availableSeries: string[];
-  onFetchSeries: (episodeOneOnly: boolean) => void;
+  episodeOneOnly: boolean;
+  onEpisodeOneOnlyChange: (value: boolean) => void;
+  onFetchSeries: () => void;
 }
 
 const SourceTaskConfigField: FC = () => (
@@ -231,9 +234,8 @@ const SourceSeriesGroupsField: FC<SourceSeriesGroupsFieldProps> = ({ selectedGro
   );
 };
 
-const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchSeries }) => {
+const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, episodeOneOnly, onEpisodeOneOnlyChange, onFetchSeries }) => {
   const { setFieldValue, values } = useFormikContext<FormValues>();
-  const [episodeOneOnly, setEpisodeOneOnly] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState('');
 
   const handleAddSeries = useCallback(() => {
@@ -255,14 +257,17 @@ const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchS
 
         <FormRow label="">
           <div css={inputRow} style={{ alignItems: 'center' }}>
-            <Button variant="contained" color="primary" onClick={() => onFetchSeries(episodeOneOnly)}>
+            <Button variant="contained" color="primary" onClick={onFetchSeries} disabled={!values.taskConfig.trim()}>
               Fetch Series
             </Button>
             <FormControlLabel
               control={
                 <Switch
                   checked={episodeOneOnly}
-                  onChange={e => setEpisodeOneOnly(e.target.checked)}
+                  onChange={e => {
+                    if (values.selectedSeries.length > 0) setFieldValue('selectedSeries', []);
+                    onEpisodeOneOnlyChange(e.target.checked);
+                  }}
                   color="primary"
                 />
               }
@@ -279,7 +284,7 @@ const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchS
 
         <FormRow label="Available Series">
           <div css={inputRow}>
-            <Box flex={1}>
+            <Box flex={1} style={{ minWidth: 0 }}>
               <FormControl variant="outlined" fullWidth>
                 <Select
                   multiple
@@ -303,7 +308,7 @@ const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchS
                 </Select>
               </FormControl>
             </Box>
-            <Button variant="contained" color="primary" onClick={handleAddSeries} disabled={values.selectedSeries.length === 0}>
+            <Button variant="contained" color="primary" onClick={handleAddSeries} disabled={values.selectedSeries.length === 0} style={{ flexShrink: 0 }}>
               Add Series
             </Button>
           </div>
@@ -312,13 +317,32 @@ const SeriesPickerForm: FC<SeriesPickerFormProps> = ({ availableSeries, onFetchS
         <ExpandableTextarea label="Updated Task Config" name="updatedTaskConfig" />
 
         <FormRow label="">
-          <Button type="submit" variant="contained" color="primary">
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={
+              !values.updatedTaskConfig.trim() ||
+              values.updatedTaskConfig === values.taskConfig
+            }
+          >
             Update Task
           </Button>
         </FormRow>
       </Paper>
     </Form>
   );
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const deriveSeriesNames = (entries: any[], filterEpisodeOne: boolean): string[] => {
+  const filtered = filterEpisodeOne
+    ? entries.filter((entry: any) => entry.seriesEpisode === 1)
+    : entries;
+  return filtered.map((entry: any) => entry.seriesName as string).filter(Boolean);
 };
 
 // ---------------------------------------------------------------------------
@@ -332,10 +356,13 @@ const AddSeries: FC = () => {
 
   const [availableSeries, setAvailableSeries] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
-  const { config: taskConfig } = useGetTaskConfig(taskId);
+  const [episodeOneOnly, setEpisodeOneOnly] = useState(true);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const { config: taskConfig, reload: reloadTaskConfig } = useGetTaskConfig(taskId);
   const [, updateTaskConfig] = useUpdateTaskConfig(taskId);
   const [{ stream }, { connect }] = useFlexgetStream('/tasks/execute', Method.Post);
   const episodeOneOnlyRef = useRef(false);
+  const cachedEntriesRef = useRef<any[]>([]);
 
   useEffect(() => {
     document.body.style.cursor = fetching ? 'wait' : '';
@@ -347,20 +374,27 @@ const AddSeries: FC = () => {
     stream
       .node('{entry_dump}', (e: any) => {
         const ev = camelize<any>(e);
-        let entries: any[] = ev.entryDump ?? [];
-        if (episodeOneOnlyRef.current) {
-          entries = entries.filter((entry: any) => entry.seriesEpisode === 1);
-        }
-        const names: string[] = entries.map((entry: any) => entry.seriesName as string).filter(Boolean);
+        const rawEntries: any[] = ev.entryDump ?? [];
+        cachedEntriesRef.current.push(...rawEntries);
+        const names = deriveSeriesNames(cachedEntriesRef.current, episodeOneOnlyRef.current);
         setAvailableSeries(prev => [...new Set([...prev, ...names])].sort((a, b) => a.localeCompare(b)));
       })
       .done(() => setFetching(false))
       .fail(() => setFetching(false));
   }, [stream]);
 
-  const handleFetchSeries = useCallback((episodeOneOnly: boolean) => {
+  const handleEpisodeOneOnlyChange = useCallback((value: boolean) => {
+    setEpisodeOneOnly(value);
+    episodeOneOnlyRef.current = value;
+    if (cachedEntriesRef.current.length === 0) return;
+    const names = deriveSeriesNames(cachedEntriesRef.current, value);
+    setAvailableSeries([...new Set(names)].sort((a, b) => a.localeCompare(b)));
+  }, []);
+
+  const handleFetchSeries = useCallback(() => {
     if (!taskId) return;
     episodeOneOnlyRef.current = episodeOneOnly;
+    cachedEntriesRef.current = [];
     setAvailableSeries([]);
     setFetching(true);
     connect({
@@ -370,7 +404,7 @@ const AddSeries: FC = () => {
       noCache: true,
       now: true,
     });
-  }, [connect, taskId]);
+  }, [connect, taskId, episodeOneOnly]);
 
   const initialValues: FormValues = {
     taskConfig,
@@ -384,18 +418,34 @@ const AddSeries: FC = () => {
       <Formik
         initialValues={initialValues}
         enableReinitialize
-        onSubmit={async values => {
+        onSubmit={async (values, { setFieldValue }) => {
           if (!values.updatedTaskConfig) return;
           try {
             const json: Record<string, any> = YAML.parse(values.updatedTaskConfig);
-            await updateTaskConfig(json);
+            const resp = await updateTaskConfig(json);
+            if (resp.ok) {
+              await reloadTaskConfig();
+              setFieldValue('updatedTaskConfig', '');
+              setSnackOpen(true);
+            }
           } catch (err) {
             console.error('Failed to update task config:', err);
           }
         }}
       >
-        <SeriesPickerForm availableSeries={availableSeries} onFetchSeries={handleFetchSeries} />
+        <SeriesPickerForm
+          availableSeries={availableSeries}
+          episodeOneOnly={episodeOneOnly}
+          onEpisodeOneOnlyChange={handleEpisodeOneOnlyChange}
+          onFetchSeries={handleFetchSeries}
+        />
       </Formik>
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackOpen(false)}
+        message={`Task Updated: ${taskId}`}
+      />
     </NoPaddingWrapper>
   );
 };

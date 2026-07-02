@@ -9,6 +9,7 @@ import {
   DialogTitle,
   Link,
   Paper,
+  Snackbar,
   TextField,
   Theme,
   Typography,
@@ -22,7 +23,7 @@ import { Formik, Form } from 'formik';
 import YAML from 'yaml';
 import { NoPaddingWrapper } from 'common/styles';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
-import { useGlobalInfo, useGlobalStatus } from 'core/status/hooks';
+import { useGlobalStatus } from 'core/status/hooks';
 import SubNav from './SubNav';
 import Editor from './Editor';
 import SubmitButton from './SubmitButton';
@@ -61,10 +62,10 @@ const EditTask: FC = () => {
     borderRadius: 3,
   };
 
-  const pushInfo = useGlobalInfo();
-
   const [taskName, setTaskName] = useState(taskId ?? '');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
   const [savedConfig, setSavedConfig] = useState('');
 
   const { loading: configLoading, error: configError, config } = useGetTaskConfig(taskId ?? '');
@@ -129,12 +130,15 @@ const EditTask: FC = () => {
       if (taskId) {
         const resp = await updateTask(parsed);
         if (resp.status === 200 || resp.status === 201) {
-          pushInfo('Task Updated');
+          setSnackMessage(`Task Updated: ${taskId}`);
+          setSnackOpen(true);
           setSavedConfig(values.yaml);
         }
       } else {
         const resp = await createTask(taskName, parsed);
         if (resp.status === 200 || resp.status === 201) {
+          setSnackMessage(`Task Created: ${taskName}`);
+          setSnackOpen(true);
           history.push(`/tasks/edit-task/${encodeURIComponent(taskName)}`);
         } else {
           setErrorMessage(resp.error?.message ?? 'An unknown error occurred');
@@ -197,6 +201,12 @@ const EditTask: FC = () => {
           </Form>
         )}
       </Formik>
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackOpen(false)}
+        message={snackMessage}
+      />
       <Dialog open={errorMessage !== null} onClose={() => setErrorMessage(null)}>
         <DialogTitle>API Error Response</DialogTitle>
         <DialogContent>

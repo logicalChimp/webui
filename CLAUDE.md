@@ -108,6 +108,10 @@ with MUI Box's `css` prop, causing a TS error at component definition time.
   order. This ordering is load-bearing; changing it reintroduces the `monaco is not defined` error.
 - Monaco theme registration lives in `Editor.tsx` (not `core/theme/index.ts`) so that monaco-editor
   stays out of the initial bundle. Do not add Monaco imports back to `core/theme/index.ts`.
+- Do not apply `padding` or `margin` to Monaco's internal CSS elements (`.margin`,
+  `.editor-scrollable`) — it breaks cursor coordinate mapping so clicks land at the wrong position.
+  To add breathing room around the editor, wrap `<MonacoEditor>` in a plain `div` and set
+  `padding` and `backgroundColor` on the wrapper instead.
 
 ## E2e tests
 - Run: `yarn test:e2e` (builds first, then runs Playwright against `dist/`)
@@ -137,7 +141,71 @@ Input components (`TextField`, `FormControl`) accept `variant: "standard" | "out
 These are different prop sets — avoid `replace_all` across both component types when
 only targeting one.
 
+## Sizing a flexible element to fill the viewport
+When a page contains one vertically-flexible element (e.g. a Monaco editor) and you want a
+reference point (a button, a card bottom) to stay at the viewport edge, use this self-correcting
+formula:
+```ts
+target = currentHeight + (window.innerHeight - referenceEl.getBoundingClientRect().bottom)
+```
+If the reference element has an outer margin, also subtract
+`parseFloat(getComputedStyle(referenceEl).marginBottom)`.
+Store `currentHeight` in a `useRef` (updated alongside `setState`) so a stable
+`useCallback([])` can read it without becoming a dep. The formula converges in one paint and is
+immune to internal padding or margins on the flexible element — no need to measure them separately.
+
+## External input labels (caption above input)
+To label an input with a small caption above it — rather than MUI's floating label — use a
+`Box position="relative"` wrapper with a `Typography variant="caption" color="textSecondary"`
+label positioned absolutely above the field:
+```tsx
+<Box position="relative">
+  <Typography
+    variant="caption"
+    color="textSecondary"
+    style={{ position: 'absolute', bottom: '100%', left: 0, whiteSpace: 'nowrap' }}
+  >
+    Label text
+  </Typography>
+  <TextField variant="outlined" ... />  {/* no label prop */}
+</Box>
+```
+Use `left: 0` for left-aligned labels, `left: '50%'` + `transform: 'translateX(-50%)'` for
+centered. The label floats into the padding above the input and does not affect the Box's layout
+height. To normalise the input height, add to the wrapping Paper's Emotion CSS:
+`.MuiOutlinedInput-input:not(.MuiOutlinedInput-inputMultiline) { padding-top: 12px; padding-bottom: 12px; }`
+See `BackfillEpisodes.tsx` and `EditTask.tsx` for usage.
+
 ## Fetching complete record sets
 Flexget's paginated endpoints default to a small page size. When you need the full
 set for a client-side comparison (e.g. all executed task names), use `?per_page=10000`
 to fetch in one request rather than paginating.
+
+## CSS Grid column overflow
+`1fr` in a grid template is actually `minmax(auto, 1fr)` — the column's minimum is its
+content width, so wide content (e.g. a long Select value) can still expand the page.
+Use `minmax(0, 1fr)` to allow the column to shrink and let overflow/ellipsis handling
+take over:
+```css
+grid-template-columns: max-content minmax(0, 1fr);
+```
+
+## Toast notifications (Snackbar)
+Use MUI v4 `Snackbar` for transient success/error messages. Standard pattern
+(see `AddSeries.tsx`, `BackfillEpisodes.tsx`):
+```tsx
+const [snackOpen, setSnackOpen] = useState(false);
+// on success:
+setSnackOpen(true);
+// in JSX:
+<Snackbar open={snackOpen} autoHideDuration={4000} onClose={() => setSnackOpen(false)} message="..." />
+```
+When the message varies by action, add a separate `snackMessage` string state alongside
+`snackOpen` and set both together on success.
+
+## State survival through history.push on the same route
+When `history.push` navigates to a URL that matches the same component (e.g. from
+`/tasks/edit-task` to `/tasks/edit-task/:id`), the component is **not** unmounted —
+React re-renders it with new route params. Local state (including `snackOpen`) survives
+the navigation. This is why a "Task Created" toast set before `history.push` remains
+visible after the URL changes to the new task's edit page.
