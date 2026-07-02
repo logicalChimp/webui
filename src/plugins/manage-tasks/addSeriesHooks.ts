@@ -21,7 +21,7 @@ export const useGetTaskConfig = (taskName: string) => {
     fetch();
   }, [fetch]);
 
-  return { ...state, config };
+  return { ...state, config, reload: fetch };
 };
 
 export const useUpdateTaskConfig = (taskName: string) => {
