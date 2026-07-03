@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import { registerPlugin } from 'core/plugins/registry';
-import { Assignment } from '@material-ui/icons';
+import { Assignment, PlayCircleOutline } from '@material-ui/icons';
 
 export default () => {
   registerPlugin('/tasks', {
@@ -17,7 +17,7 @@ export default () => {
         ),
     ),
     displayName: 'Latest Executions',
-    icon: Assignment,
+    icon: PlayCircleOutline,
     group: '/tasks',
     cardComponent: lazy(
       () =>

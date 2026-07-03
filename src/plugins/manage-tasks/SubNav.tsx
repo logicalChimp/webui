@@ -3,26 +3,25 @@ import { Toolbar, Tabs, Tab } from '@material-ui/core';
 import { useHistory, useLocation, useRouteMatch } from 'react-router';
 
 const pages = [
-  { path: '/tasks/edit-task', label: 'Edit Task', createLabel: 'Create Task' },
-  { path: '/tasks/add-series', label: 'Add Series' },
-  { path: '/tasks/edit-schedule', label: 'Edit Schedule' },
-  { path: '/tasks/backfill-episodes', label: 'Backfill Episodes' },
+  { suffix: 'edit', label: 'Edit Task' },
+  { suffix: 'add-series', label: 'Add Series' },
+  { suffix: 'backfill', label: 'Backfill Episodes' },
 ] as const;
 
-const taskParamPatterns = pages.map(p => `${p.path}/:taskId`);
-
+// Only ever rendered from within a '/tasks/current/:taskId/...' page (Edit
+// Task hides this SubNav entirely when there's no taskId, i.e. Create Task).
 const SubNav: FC = () => {
   const history = useHistory();
   const location = useLocation();
 
-  const taskMatch = useRouteMatch<{ taskId: string }>(taskParamPatterns);
-  const taskId = taskMatch?.params.taskId;
+  const match = useRouteMatch<{ taskId: string }>('/tasks/current/:taskId');
+  const taskId = match?.params.taskId ?? '';
 
-  const currentIndex = pages.findIndex(p => location.pathname.startsWith(p.path));
+  const currentSuffix = location.pathname.split('/').filter(Boolean).pop();
+  const currentIndex = pages.findIndex(p => p.suffix === currentSuffix);
 
   const handleChange = (_: unknown, index: number) => {
-    const base = pages[index].path;
-    history.push(taskId ? `${base}/${taskId}` : base);
+    history.push(`/tasks/current/${taskId}/${pages[index].suffix}`);
   };
 
   return (
@@ -34,7 +33,7 @@ const SubNav: FC = () => {
         textColor="primary"
       >
         {pages.map(p => (
-          <Tab key={p.path} label={!taskId && 'createLabel' in p ? p.createLabel : p.label} />
+          <Tab key={p.suffix} label={p.label} />
         ))}
       </Tabs>
     </Toolbar>

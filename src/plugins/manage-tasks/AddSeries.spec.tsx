@@ -21,7 +21,7 @@ const TestAddSeries: FC<Props> = ({ path }) => {
   useEffect(() => { push(path); }, [path, push]);
   return (
     <Switch>
-      <Route path="/tasks/add-series"><AddSeries /></Route>
+      <Route path="/tasks/current/:taskId/add-series"><AddSeries /></Route>
     </Switch>
   );
 };
@@ -138,14 +138,14 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('initial state', () => {
     it('loads task config from the API and shows it in the taskConfig field', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
     });
 
     it('Available Series select is disabled before Fetch Series is clicked', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -155,7 +155,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('Add Series button is disabled when no series are selected', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -164,7 +164,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('episode 1 toggle is checked by default', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -180,7 +180,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Source Series Groups', () => {
     it('is disabled with placeholder text when config has a flat series array', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -193,7 +193,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
       fetchMock.restore().get('/api/tasks/test-task', objectGroupTaskConfig).put('/api/tasks/test-task', 200).catch();
 
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, objectGroupTaskConfig);
 
@@ -206,7 +206,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
       fetchMock.restore().get('/api/tasks/test-task', arrayGroupTaskConfig).put('/api/tasks/test-task', 200).catch();
 
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, arrayGroupTaskConfig);
 
@@ -220,7 +220,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('updates when taskConfig textarea is edited to add groups', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -244,7 +244,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Fetch Series', () => {
     it('calls connect with the task name and correct flags when Fetch Series is clicked', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -261,7 +261,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('sets the cursor to wait while fetching and resets it when the stream completes', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -274,7 +274,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('resets the cursor when the stream fails', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -287,7 +287,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('populates Available Series from entry_dump, filtering to episode 1 when toggle is ON', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -313,7 +313,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('does not filter by episode when the toggle is switched OFF', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -341,7 +341,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('deduplicates series names across multiple entry_dump events', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -369,7 +369,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('sorts Available Series alphabetically', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -404,7 +404,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Add Series', () => {
     it('appends selected series to the task config and writes to updatedTaskConfig', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -450,7 +450,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Button disabled states', () => {
     it('Fetch Series button is disabled when Source Task Config is empty', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -466,7 +466,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('Update Task button is disabled when Updated Task Config is empty', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -478,7 +478,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('Update Task button is disabled when Updated Task Config matches Source Task Config', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -497,7 +497,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('Update Task button is enabled when Updated Task Config differs from Source Task Config', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -521,7 +521,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Episode-1 toggle reprocessing', () => {
     it('toggling episode-1 OFF after a fetch shows all series without re-fetching', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -551,7 +551,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('toggling episode-1 ON after fetch-without-filter filters list back down', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -580,7 +580,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('toggling episode-1 when no cache exists leaves the Available Series list empty', async () => {
       const { container } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -599,7 +599,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Selected series cleared on toggle', () => {
     it('toggling the episode-1 switch clears any selected series', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -637,7 +637,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Second Fetch clears stale results', () => {
     it('clicking Fetch Series a second time clears the Available Series list before new results arrive', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -677,7 +677,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('on successful PUT, Updated Task Config field is cleared', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -694,7 +694,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('on successful PUT, Source Task Config GET is re-issued', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -717,7 +717,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('on successful PUT, snackbar shows Task Updated message', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -740,7 +740,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
   describe('Update Task', () => {
     it('PUTs the full updatedTaskConfig as JSON to the API', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -768,7 +768,7 @@ describe('plugins/manage-tasks/AddSeries', () => {
 
     it('does not call the API when updatedTaskConfig is empty', async () => {
       const { container, getByText } = renderWithWrapper(
-        <TestAddSeries path="/tasks/add-series/test-task" />,
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
       );
       await waitForConfig(container, flatTaskConfig);
 
@@ -778,6 +778,101 @@ describe('plugins/manage-tasks/AddSeries', () => {
       await wait(() =>
         expect(fetchMock.called('/api/tasks/test-task', { method: 'put' })).toBe(false),
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Updated Task Config validation
+  // -------------------------------------------------------------------------
+
+  describe('Updated Task Config validation', () => {
+    it('marks the field invalid with "Invalid YAML" and does not call the API when the YAML is malformed', async () => {
+      const { container, getByText } = renderWithWrapper(
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
+      );
+      await waitForConfig(container, flatTaskConfig);
+
+      fireEvent.change(getField(container, 'updatedTaskConfig')!, {
+        target: { value: 'not: valid: yaml: here' },
+      });
+
+      fireEvent.click(getByText('Update Task').closest('button')!);
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Invalid YAML');
+      });
+      expect(fetchMock.called('/api/tasks/test-task', { method: 'put' })).toBe(false);
+    });
+
+    it('marks the field invalid with a required message when the YAML is empty', async () => {
+      const { container } = renderWithWrapper(
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
+      );
+      await waitForConfig(container, flatTaskConfig);
+
+      const field = getField(container, 'updatedTaskConfig')!;
+      fireEvent.change(field, { target: { value: 'x' } });
+      fireEvent.change(field, { target: { value: '' } });
+      fireEvent.blur(field);
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('An updated Task Config YAML is required');
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Update Task failure handling
+  // -------------------------------------------------------------------------
+
+  describe('Update Task failure handling', () => {
+    const differentConfig = YAML.stringify({
+      config: { series: ['Show A', 'Show B', 'New Show'] },
+      name: 'test-task',
+    });
+
+    it('shows the API error message in a dialog when the PUT fails', async () => {
+      fetchMock.restore().get('/api/tasks/test-task', flatTaskConfig)
+        .put('/api/tasks/test-task', { status: 500, body: { message: 'Validation failed' } })
+        .catch();
+
+      const { container, getByText } = renderWithWrapper(
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
+      );
+      await waitForConfig(container, flatTaskConfig);
+
+      fireEvent.change(getField(container, 'updatedTaskConfig')!, {
+        target: { value: differentConfig },
+      });
+
+      fireEvent.click(getByText('Update Task').closest('button')!);
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Validation failed');
+      });
+    });
+
+    it('still shows the "Task Updated" snackbar when the PUT succeeds but the config reload fails', async () => {
+      fetchMock.restore()
+        .get('/api/tasks/test-task', flatTaskConfig, { repeat: 1 })
+        .get('/api/tasks/test-task', 500, { overwriteRoutes: false })
+        .put('/api/tasks/test-task', 200)
+        .catch();
+
+      const { container, getByText } = renderWithWrapper(
+        <TestAddSeries path="/tasks/current/test-task/add-series" />,
+      );
+      await waitForConfig(container, flatTaskConfig);
+
+      fireEvent.change(getField(container, 'updatedTaskConfig')!, {
+        target: { value: differentConfig },
+      });
+
+      fireEvent.click(getByText('Update Task').closest('button')!);
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Task Updated: test-task');
+      });
     });
   });
 });

@@ -51,7 +51,7 @@ const buttonRow = (theme: Theme) => css`
 
 const EditTask: FC = () => {
   useInjectPageTitle('Tasks - Manage Task');
-  const match = useRouteMatch<{ taskId: string }>('/tasks/edit-task/:taskId');
+  const match = useRouteMatch<{ taskId: string }>('/tasks/current/:taskId/edit');
   const taskId = match?.params.taskId;
   const history = useHistory();
 
@@ -139,7 +139,7 @@ const EditTask: FC = () => {
         if (resp.status === 200 || resp.status === 201) {
           setSnackMessage(`Task Created: ${taskName}`);
           setSnackOpen(true);
-          history.push(`/tasks/edit-task/${encodeURIComponent(taskName)}`);
+          history.push(`/tasks/current/${encodeURIComponent(taskName)}/edit`);
         } else {
           setErrorMessage(resp.error?.message ?? 'An unknown error occurred');
         }
@@ -150,7 +150,7 @@ const EditTask: FC = () => {
 
   return (
     <NoPaddingWrapper>
-      <SubNav />
+      {taskId && <SubNav />}
       <Formik initialValues={initialValues} validate={validateYaml} onSubmit={handleSubmit}>
         {({ isValid, values }) => (
           <Form>

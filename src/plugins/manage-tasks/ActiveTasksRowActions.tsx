@@ -25,16 +25,20 @@ const ActiveTasksRowActions: FC<Props> = ({ taskName }) => {
         <MoreVert fontSize="small" />
       </IconButton>
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleClose}>
-        <MenuItem component={Link} to={`/tasks/edit-task/${encodedName}`} onClick={handleClose}>
+        <MenuItem component={Link} to={`/tasks/current/${encodedName}/edit`} onClick={handleClose}>
           Edit
         </MenuItem>
         <MenuItem disabled>Clone</MenuItem>
-        <MenuItem component={Link} to={`/tasks/add-series/${encodedName}`} onClick={handleClose}>
+        <MenuItem
+          component={Link}
+          to={`/tasks/current/${encodedName}/add-series`}
+          onClick={handleClose}
+        >
           Add Series
         </MenuItem>
         <MenuItem
           component={Link}
-          to={`/tasks/backfill-episodes/${encodedName}`}
+          to={`/tasks/current/${encodedName}/backfill`}
           onClick={handleClose}
         >
           Backfill

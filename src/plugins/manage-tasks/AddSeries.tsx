@@ -5,6 +5,11 @@ import {
   Box,
   Button,
   Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   IconButton,
@@ -25,7 +30,7 @@ import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { useFlexgetStream } from 'core/api';
 import { Method, camelize } from 'utils/fetch';
 import { useGetTaskConfig, useUpdateTaskConfig } from './addSeriesHooks';
-import { extractGroupNames, applySelectedSeries } from './addSeriesUtils';
+import { extractGroupNames, applySelectedSeries, validate } from './addSeriesUtils';
 import SubNav from './SubNav';
 
 // ---------------------------------------------------------------------------
@@ -351,13 +356,14 @@ const deriveSeriesNames = (entries: any[], filterEpisodeOne: boolean): string[] 
 
 const AddSeries: FC = () => {
   useInjectPageTitle('Tasks - Manage Task');
-  const match = useRouteMatch<{ taskId: string }>('/tasks/add-series/:taskId');
+  const match = useRouteMatch<{ taskId: string }>('/tasks/current/:taskId/add-series');
   const taskId = match?.params.taskId ?? '';
 
   const [availableSeries, setAvailableSeries] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
   const [episodeOneOnly, setEpisodeOneOnly] = useState(true);
   const [snackOpen, setSnackOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { config: taskConfig, reload: reloadTaskConfig } = useGetTaskConfig(taskId);
   const [, updateTaskConfig] = useUpdateTaskConfig(taskId);
   const [{ stream }, { connect }] = useFlexgetStream('/tasks/execute', Method.Post);
@@ -418,18 +424,20 @@ const AddSeries: FC = () => {
       <Formik
         initialValues={initialValues}
         enableReinitialize
+        validate={validate}
         onSubmit={async (values, { setFieldValue }) => {
-          if (!values.updatedTaskConfig) return;
+          const json: Record<string, any> = YAML.parse(values.updatedTaskConfig);
+          const resp = await updateTaskConfig(json);
+          if (!resp.ok) {
+            setErrorMessage(resp.error?.message ?? 'An unknown error occurred');
+            return;
+          }
+          setFieldValue('updatedTaskConfig', '');
+          setSnackOpen(true);
           try {
-            const json: Record<string, any> = YAML.parse(values.updatedTaskConfig);
-            const resp = await updateTaskConfig(json);
-            if (resp.ok) {
-              await reloadTaskConfig();
-              setFieldValue('updatedTaskConfig', '');
-              setSnackOpen(true);
-            }
+            await reloadTaskConfig();
           } catch (err) {
-            console.error('Failed to update task config:', err);
+            console.error('Failed to reload task config:', err);
           }
         }}
       >
@@ -446,6 +454,17 @@ const AddSeries: FC = () => {
         onClose={() => setSnackOpen(false)}
         message={`Task Updated: ${taskId}`}
       />
+      <Dialog open={errorMessage !== null} onClose={() => setErrorMessage(null)}>
+        <DialogTitle>API Error Response</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{errorMessage}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorMessage(null)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </NoPaddingWrapper>
   );
 };

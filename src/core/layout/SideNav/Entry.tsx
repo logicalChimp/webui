@@ -14,7 +14,14 @@ import { ExpandMore } from '@material-ui/icons';
 import { useHistory, useLocation } from 'react-router';
 
 import { NavRoute } from 'core/routes/types';
-import { accordionRoot, accordionSummaryActive, activeNavItem } from './styles';
+import {
+  accordionRoot,
+  accordionSummaryActive,
+  activeNavItem,
+  navRowHeight,
+  subEntryBackground,
+  subEntryIndent,
+} from './styles';
 
 interface Props {
   onClick?: () => void;
@@ -22,14 +29,27 @@ interface Props {
   Icon: ComponentType;
   className?: string;
   name: string;
+  sidebarOpen?: boolean;
+  // When set, replaces the natural path-based active check entirely (rather
+  // than only being able to force it on) — e.g. to suppress the active tint
+  // on a collapsed group's own row even though one of its children matches
+  // the current route.
+  activeOverride?: boolean;
+  subEntry?: boolean;
+  indent?: boolean;
 }
 
 export const colorClass = (theme: Theme) => css`
   color: ${theme.palette.secondary.light};
 `;
 
+// height (not just min-height) is load-bearing: an expanded row's ListItemText
+// label carries its own vertical margin that an icon-only collapsed row doesn't
+// have, so without a fixed height every row is a few px taller when the label
+// is showing — bouncing every row below it each time the sidebar is toggled.
 const navItem = (theme: Theme) => css`
   ${colorClass(theme)};
+  ${navRowHeight};
   border-left: 3px solid transparent;
   cursor: pointer;
 
@@ -38,19 +58,35 @@ const navItem = (theme: Theme) => css`
   }
 `;
 
-const SideNavEntry: FC<Props> = ({ onClick, path, Icon, name, className }) => {
+const SideNavEntry: FC<Props> = ({
+  onClick,
+  path,
+  Icon,
+  name,
+  className,
+  sidebarOpen = true,
+  activeOverride,
+  subEntry = false,
+  indent = false,
+}) => {
   const location = useLocation();
-  const isActive = !!path && location.pathname.startsWith(path);
+  const isActive = activeOverride ?? (!!path && location.pathname.startsWith(path));
 
   const item = (
     <ListItem
-      css={theme => [navItem(theme), isActive && activeNavItem(theme), className]}
+      css={theme => [
+        navItem(theme),
+        subEntry && subEntryBackground(theme),
+        isActive && activeNavItem(theme),
+        indent && subEntryIndent(theme),
+        className,
+      ]}
       onClick={onClick}
     >
       <ListItemIcon css={colorClass}>
         <Icon />
       </ListItemIcon>
-      <ListItemText css={colorClass} disableTypography primary={name} />
+      {sidebarOpen && <ListItemText css={colorClass} disableTypography primary={name} />}
     </ListItem>
   );
 
@@ -68,6 +104,7 @@ interface AccordionProps {
   onNavigate?: () => void;
   expanded: boolean;
   onToggle: (expanded: boolean) => void;
+  sidebarOpen?: boolean;
 }
 
 export const AccordionEntry: FC<AccordionProps> = ({
@@ -77,6 +114,7 @@ export const AccordionEntry: FC<AccordionProps> = ({
   onNavigate,
   expanded,
   onToggle,
+  sidebarOpen = true,
 }) => {
   const history = useHistory();
   const location = useLocation();
@@ -92,6 +130,40 @@ export const AccordionEntry: FC<AccordionProps> = ({
     },
     [children, history, onNavigate, onToggle],
   );
+
+  // When collapsed there's no room for the accordion's expand/collapse chrome or
+  // labels, so render the group icon as a direct link to its first child. Only the
+  // currently-open group's children are shown (as icon-only entries below it) —
+  // other groups' sub-nav items stay hidden until their own group is opened.
+  if (!sidebarOpen) {
+    return (
+      <>
+        <SideNavEntry
+          path={children[0].path}
+          Icon={Icon}
+          name={name}
+          onClick={() => {
+            onToggle(true);
+            onNavigate?.();
+          }}
+          sidebarOpen={false}
+          activeOverride={false}
+        />
+        {expanded &&
+          children.map(child => (
+            <SideNavEntry
+              key={child.path}
+              path={child.path}
+              Icon={child.Icon}
+              name={child.name}
+              onClick={onNavigate}
+              sidebarOpen={false}
+              subEntry
+            />
+          ))}
+      </>
+    );
+  }
 
   return (
     <ExpansionPanel
@@ -115,6 +187,7 @@ export const AccordionEntry: FC<AccordionProps> = ({
             Icon={child.Icon}
             name={child.name}
             onClick={onNavigate}
+            indent
           />
         ))}
       </ExpansionPanelDetails>
