@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { FC, useEffect } from 'react';
 import { cleanup, fireEvent, wait } from '@testing-library/react';
+import { useHistory } from 'react-router';
 import fetchMock from 'fetch-mock';
 import { renderWithWrapper } from 'utils/tests';
 import ActiveTasks from './ActiveTasks';
+
+// Simulates arriving at Active Tasks via history.push(path, { toast }) from
+// another page (e.g. Create Task after a successful create).
+const NavigateWithToast: FC<{ toast: string }> = ({ toast }) => {
+  const history = useHistory();
+  useEffect(() => {
+    history.replace('/tasks/current', { toast });
+  }, [toast, history]);
+  return <ActiveTasks />;
+};
 
 const makeTasks = (count: number) =>
   Array.from({ length: count }, (_, i) => ({ id: i + 1, name: `task-${String(i + 1).padStart(2, '0')}` }));
@@ -102,7 +113,7 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
       ]);
     });
 
-    it('links Edit, Add Series, and Backfill to the correct task-scoped pages', async () => {
+    it('links Edit, Clone, Add Series, and Backfill to the correct task-scoped pages', async () => {
       mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
       const { findByText, container } = renderWithWrapper(<ActiveTasks />);
 
@@ -116,6 +127,9 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
         document.querySelector('a[href="/tasks/current/my-task/edit"][role="menuitem"]'),
       ).toBeInTheDocument();
       expect(
+        document.querySelector('a[href="/tasks/create-task?clone=my-task"][role="menuitem"]'),
+      ).toBeInTheDocument();
+      expect(
         document.querySelector('a[href="/tasks/current/my-task/add-series"][role="menuitem"]'),
       ).toBeInTheDocument();
       expect(
@@ -123,7 +137,7 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
       ).toBeInTheDocument();
     });
 
-    it('disables Clone but not Delete', async () => {
+    it('does not disable any menu items', async () => {
       mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
       const { findByText, container } = renderWithWrapper(<ActiveTasks />);
 
@@ -133,10 +147,7 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
 
       await wait(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(5));
       const items = Array.from(document.querySelectorAll('[role="menuitem"]'));
-      const clone = items.find(item => item.textContent === 'Clone') as HTMLElement;
-      const del = items.find(item => item.textContent === 'Delete') as HTMLElement;
-      expect(clone).toHaveClass('Mui-disabled');
-      expect(del).not.toHaveClass('Mui-disabled');
+      items.forEach(item => expect(item).not.toHaveClass('Mui-disabled'));
     });
   });
 
@@ -244,6 +255,20 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
         expect(document.body.textContent).toContain('Deletion Failed');
       });
       expect(fetchMock.calls('/api/tasks', { method: 'get' })).toHaveLength(1);
+    });
+  });
+
+  describe('toast via navigation state', () => {
+    it('shows a toast passed through history.push location state on arrival', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      const { findByText } = renderWithWrapper(
+        <NavigateWithToast toast="Task Created: my-task" />,
+      );
+
+      await findByText('my-task');
+      await wait(() => {
+        expect(document.body.textContent).toContain('Task Created: my-task');
+      });
     });
   });
 

@@ -1,7 +1,8 @@
-import React, { FC, useCallback, useMemo, useState } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { Formik } from 'formik';
 import { Snackbar } from '@material-ui/core';
 import { CheckCircle, Error, RadioButtonUnchecked } from '@material-ui/icons';
+import { useHistory, useLocation } from 'react-router';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { Direction, DefaultOptions } from 'utils/query';
 import ActiveTasksTable, { Header, HeaderGroup } from './ActiveTasksTable';
@@ -44,6 +45,24 @@ const ActiveTasks: FC = () => {
 
   const [snackOpen, setSnackOpen] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
+
+  // Pages that redirect here (e.g. Create Task, after a successful create) pass
+  // a toast message through history.push's location state, since this is a
+  // different page/component — a Snackbar local to the redirecting page would
+  // unmount before ever becoming visible. Clear the state via history.replace
+  // once shown so it doesn't reappear on a later back-navigation or refresh.
+  const history = useHistory();
+  const location = useLocation<{ toast?: string } | undefined>();
+
+  useEffect(() => {
+    const toastMessage = location.state?.toast;
+    if (toastMessage) {
+      setSnackMessage(toastMessage);
+      setSnackOpen(true);
+      history.replace(location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // Owned here (rather than inside ActiveTasksRowActions) so the toast survives
   // the list refresh that follows it — the deleted task's own row (and any
