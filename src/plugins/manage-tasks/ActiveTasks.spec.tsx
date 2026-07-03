@@ -113,13 +113,13 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
       await wait(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(5));
 
       expect(
-        document.querySelector('a[href="/tasks/edit-task/my-task"][role="menuitem"]'),
+        document.querySelector('a[href="/tasks/current/my-task/edit"][role="menuitem"]'),
       ).toBeInTheDocument();
       expect(
-        document.querySelector('a[href="/tasks/add-series/my-task"][role="menuitem"]'),
+        document.querySelector('a[href="/tasks/current/my-task/add-series"][role="menuitem"]'),
       ).toBeInTheDocument();
       expect(
-        document.querySelector('a[href="/tasks/backfill-episodes/my-task"][role="menuitem"]'),
+        document.querySelector('a[href="/tasks/current/my-task/backfill"][role="menuitem"]'),
       ).toBeInTheDocument();
     });
 

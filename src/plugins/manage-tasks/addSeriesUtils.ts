@@ -96,3 +96,17 @@ export const applySelectedSeries = (
 
   return YAML.stringify(parsed);
 };
+
+export const validate = (values: {
+  updatedTaskConfig: string;
+}): { updatedTaskConfig?: string } => {
+  if (!values.updatedTaskConfig) {
+    return { updatedTaskConfig: 'An updated Task Config YAML is required' };
+  }
+  try {
+    YAML.parse(values.updatedTaskConfig);
+  } catch {
+    return { updatedTaskConfig: 'Invalid YAML' };
+  }
+  return {};
+};

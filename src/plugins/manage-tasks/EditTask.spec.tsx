@@ -21,7 +21,8 @@ const TestEditTask: FC<Props> = ({ path }) => {
   useEffect(() => { push(path); }, [path, push]);
   return (
     <Switch>
-      <Route path="/tasks/edit-task"><EditTask /></Route>
+      <Route path="/tasks/current/:taskId/edit"><EditTask /></Route>
+      <Route path="/tasks/create-task"><EditTask /></Route>
     </Switch>
   );
 };
@@ -98,14 +99,14 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('loads existing task config into the YAML editor', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
     });
 
     it('Task Name field is read-only', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
       expect(getTaskNameField(container)).toHaveAttribute('readonly');
@@ -113,7 +114,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('renders Update Task button', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
       expect(getSubmitButton(container, 'Update Task')).toBeInTheDocument();
@@ -121,7 +122,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('Update Task button is disabled when YAML matches saved config', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
       expect(getSubmitButton(container, 'Update Task')).toBeDisabled();
@@ -129,7 +130,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('Update Task button is enabled after YAML is changed', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
 
@@ -144,7 +145,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('on successful PUT, snackbar shows Task Updated message', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
 
@@ -162,7 +163,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('on successful PUT, Update Task button returns to disabled', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
 
@@ -185,7 +186,7 @@ describe('plugins/manage-tasks/EditTask', () => {
         .catch();
 
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task/test-task" />,
+        <TestEditTask path="/tasks/current/test-task/edit" />,
       );
       await waitForYaml(container);
 
@@ -215,28 +216,28 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('renders Create Task button', () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
       expect(getSubmitButton(container, 'Create Task')).toBeInTheDocument();
     });
 
     it('Task Name field is editable', () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
       expect(getTaskNameField(container)).not.toHaveAttribute('readonly');
     });
 
     it('Create Task button is disabled when task name is empty', () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
       expect(getSubmitButton(container, 'Create Task')).toBeDisabled();
     });
 
     it('Create Task button is enabled when task name is filled', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
 
       fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
@@ -248,7 +249,7 @@ describe('plugins/manage-tasks/EditTask', () => {
 
     it('on successful POST, snackbar shows Task Created message', async () => {
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
 
       fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
@@ -269,7 +270,7 @@ describe('plugins/manage-tasks/EditTask', () => {
         .catch();
 
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
 
       fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
@@ -289,7 +290,7 @@ describe('plugins/manage-tasks/EditTask', () => {
         .catch();
 
       const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/edit-task" />,
+        <TestEditTask path="/tasks/create-task" />,
       );
 
       fireEvent.change(getTaskNameField(container)!, { target: { value: 'existing-task' } });

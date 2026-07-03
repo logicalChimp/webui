@@ -106,6 +106,7 @@ const SideNav: FC<Props> = ({ sidebarOpen = false, onClose, className }) => {
                 onNavigate={handleNavigate}
                 expanded={openGroup === route.path}
                 onToggle={isExpanded => setOpenGroup(isExpanded ? route.path : null)}
+                sidebarOpen={sidebarOpen}
               />
             ) : (
               <Entry
@@ -114,6 +115,7 @@ const SideNav: FC<Props> = ({ sidebarOpen = false, onClose, className }) => {
                 Icon={route.Icon}
                 name={route.name}
                 onClick={handleNavigate}
+                sidebarOpen={sidebarOpen}
               />
             ),
           )}

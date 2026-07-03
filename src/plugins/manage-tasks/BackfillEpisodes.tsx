@@ -440,7 +440,7 @@ const RssBackfillUrlField: FC = () => {
 
 const BackfillEpisodes: FC = () => {
   useInjectPageTitle('Tasks - Manage Task');
-  const match = useRouteMatch<{ taskId: string }>('/tasks/backfill-episodes/:taskId');
+  const match = useRouteMatch<{ taskId: string }>('/tasks/current/:taskId/backfill');
   const taskId = match?.params.taskId ?? '';
 
   const taskName = taskId ? `${taskId}-backfill` : '';
