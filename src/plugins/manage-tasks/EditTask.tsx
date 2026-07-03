@@ -18,7 +18,7 @@ import {
 import { OpenInNew } from '@material-ui/icons';
 import { themes } from 'core/theme';
 import { css } from '@emotion/core';
-import { useRouteMatch, useHistory } from 'react-router';
+import { useRouteMatch, useHistory, useLocation } from 'react-router';
 import { Formik, Form } from 'formik';
 import YAML from 'yaml';
 import { NoPaddingWrapper } from 'common/styles';
@@ -54,6 +54,14 @@ const EditTask: FC = () => {
   const match = useRouteMatch<{ taskId: string }>('/tasks/current/:taskId/edit');
   const taskId = match?.params.taskId;
   const history = useHistory();
+  const location = useLocation();
+
+  // Optional ?clone=<taskname> on the Create Task route: prefills the editor
+  // from the cloned task's config and the Task Name field with '<name>-clone'.
+  const cloneTaskName = useMemo(
+    () => (!taskId ? new URLSearchParams(location.search).get('clone') ?? '' : ''),
+    [taskId, location.search],
+  );
 
   const theme = useTheme();
   const codeStyle: React.CSSProperties = {
@@ -62,13 +70,18 @@ const EditTask: FC = () => {
     borderRadius: 3,
   };
 
-  const [taskName, setTaskName] = useState(taskId ?? '');
+  const [taskName, setTaskName] = useState(
+    taskId ?? (cloneTaskName ? `${cloneTaskName}-clone` : ''),
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [snackOpen, setSnackOpen] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
   const [savedConfig, setSavedConfig] = useState('');
 
   const { loading: configLoading, error: configError, config } = useGetTaskConfig(taskId ?? '');
+  const { loading: cloneLoading, error: cloneError, config: cloneConfig } = useGetTaskConfig(
+    cloneTaskName,
+  );
 
   useEffect(() => {
     if (taskId && config) {
@@ -79,8 +92,8 @@ const EditTask: FC = () => {
   const [updateState, updateTask] = useUpdateTaskConfig(taskId ?? '');
 
   useGlobalStatus(
-    configLoading || createState.loading || updateState.loading,
-    configError ?? updateState.error,
+    configLoading || cloneLoading || createState.loading || updateState.loading,
+    configError ?? cloneError ?? updateState.error,
   );
 
   const MONACO_LINE_HEIGHT = 19; // Monaco default (px)
@@ -110,10 +123,11 @@ const EditTask: FC = () => {
     return () => window.removeEventListener('resize', recalculate);
   }, [recalculate]);
 
-  const initialValues = useMemo<FormState>(
-    () => ({ yaml: taskId ? config : 'config:\n  ' }),
-    [taskId, config],
-  );
+  const initialValues = useMemo<FormState>(() => {
+    if (taskId) return { yaml: config };
+    if (cloneTaskName) return { yaml: cloneConfig };
+    return { yaml: 'config:\n  ' };
+  }, [taskId, config, cloneTaskName, cloneConfig]);
 
   const validateYaml = useCallback((values: FormState) => {
     try {
@@ -141,9 +155,10 @@ const EditTask: FC = () => {
         // overwritten rather than left in the request body.
         const resp = await createTask({ ...parsed, name: taskName });
         if (resp.status === 200 || resp.status === 201) {
-          setSnackMessage(`Task Created: ${taskName}`);
-          setSnackOpen(true);
-          history.push(`/tasks/current/${encodeURIComponent(taskName)}/edit`);
+          // Active Tasks is a different page/component, so a Snackbar set here
+          // would unmount before ever rendering — pass the message through
+          // location state instead, for Active Tasks to display on arrival.
+          history.push('/tasks/current', { toast: `Task Created: ${taskName}` });
         } else {
           setErrorMessage(resp.error?.message ?? 'An unknown error occurred');
         }

@@ -1,6 +1,6 @@
 import React, { FC, useEffect } from 'react';
 import { cleanup, fireEvent, wait } from '@testing-library/react';
-import { useHistory, Route, Switch } from 'react-router';
+import { useHistory, useLocation, Route, Switch } from 'react-router';
 import { useField } from 'formik';
 import fetchMock from 'fetch-mock';
 import YAML from 'yaml';
@@ -16,6 +16,14 @@ interface Props {
   path: string;
 }
 
+// Stands in for the real Active Tasks page: renders any toast message passed
+// through history.push's location state, mirroring ActiveTasks.tsx's own
+// handling, so tests can verify EditTask's side of that contract.
+const ActiveTasksStub: FC = () => {
+  const location = useLocation<{ toast?: string } | undefined>();
+  return <div>Active Tasks Page{location.state?.toast ? `: ${location.state.toast}` : ''}</div>;
+};
+
 const TestEditTask: FC<Props> = ({ path }) => {
   const { push } = useHistory();
   useEffect(() => { push(path); }, [path, push]);
@@ -23,6 +31,7 @@ const TestEditTask: FC<Props> = ({ path }) => {
     <Switch>
       <Route path="/tasks/current/:taskId/edit"><EditTask /></Route>
       <Route path="/tasks/create-task"><EditTask /></Route>
+      <Route path="/tasks/current" exact><ActiveTasksStub /></Route>
     </Switch>
   );
 };
@@ -247,29 +256,11 @@ describe('plugins/manage-tasks/EditTask', () => {
       });
     });
 
-    it('on successful POST, snackbar shows Task Created message', async () => {
-      const { container } = renderWithWrapper(
-        <TestEditTask path="/tasks/create-task" />,
-      );
-
-      fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
-      await wait(() => expect(getSubmitButton(container, 'Create Task')).not.toBeDisabled());
-
-      fireEvent.click(getSubmitButton(container, 'Create Task')!);
-
-      await wait(() => {
-        expect(document.body.textContent).toContain('Task Created: my-new-task');
-      });
-    });
-
-    it('on successful POST, navigates to the edit page for the new task', async () => {
+    it('on successful POST, navigates to the Active Tasks page with a Task Created toast', async () => {
       fetchMock.reset();
-      fetchMock
-        .post('/api/tasks', 200)
-        .get('/api/tasks/my-new-task', { config: {}, name: 'my-new-task' })
-        .catch();
+      fetchMock.post('/api/tasks', 200).catch();
 
-      const { container } = renderWithWrapper(
+      const { container, getByText } = renderWithWrapper(
         <TestEditTask path="/tasks/create-task" />,
       );
 
@@ -279,7 +270,7 @@ describe('plugins/manage-tasks/EditTask', () => {
       fireEvent.click(getSubmitButton(container, 'Create Task')!);
 
       await wait(() => {
-        expect(getSubmitButton(container, 'Update Task')).toBeInTheDocument();
+        expect(getByText('Active Tasks Page: Task Created: my-new-task')).toBeInTheDocument();
       });
     });
 
@@ -351,6 +342,64 @@ describe('plugins/manage-tasks/EditTask', () => {
       await wait(() => {
         expect(document.body.textContent).toContain('Task already exists');
       });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Clone mode (create mode with ?clone=<taskname>)
+  // -------------------------------------------------------------------------
+
+  describe('clone mode (?clone=<taskname>)', () => {
+    beforeEach(() => {
+      fetchMock.get('/api/tasks/test-task', taskConfigFixture).post('/api/tasks', 200).catch();
+    });
+
+    it('prefills the Task Name field with "<name>-clone"', () => {
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task?clone=test-task" />,
+      );
+      expect(getTaskNameField(container)?.value).toBe('test-task-clone');
+    });
+
+    it('Task Name field remains editable', () => {
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task?clone=test-task" />,
+      );
+      expect(getTaskNameField(container)).not.toHaveAttribute('readonly');
+    });
+
+    it('loads the cloned task config into the YAML editor', async () => {
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task?clone=test-task" />,
+      );
+      await waitForYaml(container);
+    });
+
+    it('renders Create Task button (not Update Task)', () => {
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task?clone=test-task" />,
+      );
+      expect(getSubmitButton(container, 'Create Task')).toBeInTheDocument();
+    });
+
+    it('on submit, POSTs the cloned config with the "-clone" task name', async () => {
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task?clone=test-task" />,
+      );
+      await waitForYaml(container);
+      await wait(() => expect(getSubmitButton(container, 'Create Task')).not.toBeDisabled());
+
+      fireEvent.click(getSubmitButton(container, 'Create Task')!);
+
+      await wait(() => {
+        expect(fetchMock.called('/api/tasks', { method: 'post' })).toBe(true);
+      });
+
+      const calls = fetchMock.calls('/api/tasks', { method: 'post' });
+      const body = JSON.parse(calls[0][1]!.body as string);
+      // The cloned YAML's own top-level `name: test-task` is overwritten by
+      // the Task Name field's '-clone'-suffixed value.
+      expect(body).toEqual({ name: 'test-task-clone', config: { series: ['Show A'] } });
     });
   });
 });

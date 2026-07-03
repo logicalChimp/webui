@@ -63,7 +63,13 @@ const ActiveTasksRowActions: FC<Props> = ({ taskName, onDeleteSuccess }) => {
         <MenuItem component={Link} to={`/tasks/current/${encodedName}/edit`} onClick={handleClose}>
           Edit
         </MenuItem>
-        <MenuItem disabled>Clone</MenuItem>
+        <MenuItem
+          component={Link}
+          to={`/tasks/create-task?clone=${encodedName}`}
+          onClick={handleClose}
+        >
+          Clone
+        </MenuItem>
         <MenuItem
           component={Link}
           to={`/tasks/current/${encodedName}/add-series`}
