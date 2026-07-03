@@ -135,7 +135,11 @@ const EditTask: FC = () => {
           setSavedConfig(values.yaml);
         }
       } else {
-        const resp = await createTask(taskName, parsed);
+        // Spread the parsed YAML (its own top-level `config:` key, see the
+        // on-page note above) into the payload first, then set `name` from the
+        // Task Name field second — so a `name:` typed in the editor is
+        // overwritten rather than left in the request body.
+        const resp = await createTask({ ...parsed, name: taskName });
         if (resp.status === 200 || resp.status === 201) {
           setSnackMessage(`Task Created: ${taskName}`);
           setSnackOpen(true);

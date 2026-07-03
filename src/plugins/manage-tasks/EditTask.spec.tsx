@@ -283,6 +283,56 @@ describe('plugins/manage-tasks/EditTask', () => {
       });
     });
 
+    it('POST body nests config settings directly under "config", not double-nested', async () => {
+      fetchMock.reset();
+      fetchMock.post('/api/tasks', 200).catch();
+
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task" />,
+      );
+
+      fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
+      fireEvent.change(getYamlField(container)!, {
+        target: { value: 'config:\n  rss: {}\n' },
+      });
+      await wait(() => expect(getSubmitButton(container, 'Create Task')).not.toBeDisabled());
+
+      fireEvent.click(getSubmitButton(container, 'Create Task')!);
+
+      await wait(() => {
+        expect(fetchMock.called('/api/tasks', { method: 'post' })).toBe(true);
+      });
+
+      const calls = fetchMock.calls('/api/tasks', { method: 'post' });
+      const body = JSON.parse(calls[0][1]!.body as string);
+      expect(body).toEqual({ name: 'my-new-task', config: { rss: {} } });
+    });
+
+    it('overwrites a stray "name" typed in the YAML editor with the Task Name field', async () => {
+      fetchMock.reset();
+      fetchMock.post('/api/tasks', 200).catch();
+
+      const { container } = renderWithWrapper(
+        <TestEditTask path="/tasks/create-task" />,
+      );
+
+      fireEvent.change(getTaskNameField(container)!, { target: { value: 'my-new-task' } });
+      fireEvent.change(getYamlField(container)!, {
+        target: { value: 'config:\n  rss: {}\nname: sneaky-name\n' },
+      });
+      await wait(() => expect(getSubmitButton(container, 'Create Task')).not.toBeDisabled());
+
+      fireEvent.click(getSubmitButton(container, 'Create Task')!);
+
+      await wait(() => {
+        expect(fetchMock.called('/api/tasks', { method: 'post' })).toBe(true);
+      });
+
+      const calls = fetchMock.calls('/api/tasks', { method: 'post' });
+      const body = JSON.parse(calls[0][1]!.body as string);
+      expect(body).toEqual({ name: 'my-new-task', config: { rss: {} } });
+    });
+
     it('on API error, shows the error dialog', async () => {
       fetchMock.reset();
       fetchMock

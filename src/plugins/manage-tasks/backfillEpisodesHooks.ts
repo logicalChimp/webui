@@ -24,12 +24,14 @@ export const useGetTaskConfig = (taskName: string) => {
   return { ...state, config };
 };
 
+// Callers build their own request body (rather than this hook wrapping a
+// `{ name, config }` shape itself) since each has different source data:
+// EditTask's parsed YAML already carries its own top-level `config` key,
+// while BackfillEpisodes unwraps one first. See EditTask.tsx's create-mode
+// submit handler for the "config added first, name added second" pattern.
 export const useCreateTask = () => {
   const [state, request] = useFlexgetAPI<Record<string, any>>('/tasks', Method.Post);
-  const create = useCallback(
-    (name: string, config: Record<string, any>) => request({ name, config }),
-    [request],
-  );
+  const create = useCallback((body: Record<string, any>) => request(body), [request]);
   return [state, create] as const;
 };
 

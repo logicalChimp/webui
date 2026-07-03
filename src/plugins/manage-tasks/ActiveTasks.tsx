@@ -1,5 +1,6 @@
-import React, { FC, useMemo, useState } from 'react';
+import React, { FC, useCallback, useMemo, useState } from 'react';
 import { Formik } from 'formik';
+import { Snackbar } from '@material-ui/core';
 import { CheckCircle, Error, RadioButtonUnchecked } from '@material-ui/icons';
 import { useInjectPageTitle } from 'core/layout/AppBar/hooks';
 import { Direction, DefaultOptions } from 'utils/query';
@@ -37,9 +38,25 @@ const ActiveTasks: FC = () => {
     sortBy: Column.Name,
   });
 
-  const { tasks } = useGetTasks();
+  const { tasks, refresh: refreshTasks } = useGetTasks();
   const { statuses } = useGetTaskStatuses();
   const { schedules } = useGetSchedules();
+
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
+
+  // Owned here (rather than inside ActiveTasksRowActions) so the toast survives
+  // the list refresh that follows it — the deleted task's own row (and any
+  // Snackbar local to it) is gone from the DOM as soon as the refreshed task
+  // list excludes it.
+  const handleDeleteSuccess = useCallback(
+    (name: string) => {
+      setSnackMessage(`Task ${name}: Deleted OK`);
+      setSnackOpen(true);
+      refreshTasks();
+    },
+    [refreshTasks],
+  );
 
   const statusByName = useMemo(
     () => new Map<string, TaskStatus>(statuses.map(status => [status.name, status])),
@@ -82,11 +99,13 @@ const ActiveTasks: FC = () => {
             ),
             [Column.Type]: getScheduleStatusForTask(schedules, name) ?? '',
             [Column.SeriesCount]: countSeriesInTask(task),
-            [Column.Actions]: <ActiveTasksRowActions taskName={name} />,
+            [Column.Actions]: (
+              <ActiveTasksRowActions taskName={name} onDeleteSuccess={handleDeleteSuccess} />
+            ),
           },
         };
       }),
-    [tasks, statusByName, scheduledTaskNames, schedules],
+    [tasks, statusByName, scheduledTaskNames, schedules, handleDeleteSuccess],
   );
 
   const sortedRows = useMemo(() => {
@@ -103,14 +122,22 @@ const ActiveTasks: FC = () => {
   }, [sortedRows, options.page, options.perPage]);
 
   return (
-    <Formik initialValues={options} onSubmit={setOptions}>
-      <ActiveTasksTable
-        total={rows.length}
-        rows={visibleRows}
-        headers={headers}
-        headerGroups={headerGroups}
+    <>
+      <Formik initialValues={options} onSubmit={setOptions}>
+        <ActiveTasksTable
+          total={rows.length}
+          rows={visibleRows}
+          headers={headers}
+          headerGroups={headerGroups}
+        />
+      </Formik>
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackOpen(false)}
+        message={snackMessage}
       />
-    </Formik>
+    </>
   );
 };
 

@@ -1,14 +1,32 @@
 import React, { FC, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IconButton, Menu, MenuItem } from '@material-ui/core';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Menu,
+  MenuItem,
+} from '@material-ui/core';
 import { MoreVert } from '@material-ui/icons';
+import { useDeleteTask } from './backfillEpisodesHooks';
 
 interface Props {
   taskName: string;
+  // Called (rather than showing a local Snackbar) so the toast is owned by the
+  // page and survives the task-list refresh that follows — this row unmounts
+  // as soon as the refreshed list no longer includes the deleted task.
+  onDeleteSuccess?: (taskName: string) => void;
 }
 
-const ActiveTasksRowActions: FC<Props> = ({ taskName }) => {
+const ActiveTasksRowActions: FC<Props> = ({ taskName, onDeleteSuccess }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [, deleteTask] = useDeleteTask(taskName);
 
   const handleOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
@@ -16,6 +34,23 @@ const ActiveTasksRowActions: FC<Props> = ({ taskName }) => {
   }, []);
 
   const handleClose = useCallback(() => setAnchorEl(null), []);
+
+  const handleDeleteClick = useCallback(() => {
+    setAnchorEl(null);
+    setConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    setConfirmOpen(false);
+    const resp = await deleteTask();
+    if (resp.status === 200 || resp.status === 201) {
+      onDeleteSuccess?.(taskName);
+    } else {
+      setErrorMessage(
+        resp.data !== undefined ? JSON.stringify(resp.data) : 'An unknown error occurred',
+      );
+    }
+  }, [deleteTask, onDeleteSuccess, taskName]);
 
   const encodedName = encodeURIComponent(taskName);
 
@@ -43,8 +78,35 @@ const ActiveTasksRowActions: FC<Props> = ({ taskName }) => {
         >
           Backfill
         </MenuItem>
-        <MenuItem disabled>Delete</MenuItem>
+        <MenuItem onClick={handleDeleteClick}>Delete</MenuItem>
       </Menu>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>{`Delete ${taskName}`}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Are you sure you wish to delete this task?</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} autoFocus>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="primary">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={errorMessage !== null} onClose={() => setErrorMessage(null)}>
+        <DialogTitle>Deletion Failed</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{errorMessage}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setErrorMessage(null)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

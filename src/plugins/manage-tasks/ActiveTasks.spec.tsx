@@ -123,7 +123,7 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
       ).toBeInTheDocument();
     });
 
-    it('disables Clone and Delete', async () => {
+    it('disables Clone but not Delete', async () => {
       mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
       const { findByText, container } = renderWithWrapper(<ActiveTasks />);
 
@@ -136,7 +136,114 @@ describe('plugins/manage-tasks/ActiveTasks', () => {
       const clone = items.find(item => item.textContent === 'Clone') as HTMLElement;
       const del = items.find(item => item.textContent === 'Delete') as HTMLElement;
       expect(clone).toHaveClass('Mui-disabled');
-      expect(del).toHaveClass('Mui-disabled');
+      expect(del).not.toHaveClass('Mui-disabled');
+    });
+  });
+
+  describe('Delete confirmation', () => {
+    const openDeleteConfirm = async (
+      findByText: (text: string) => Promise<HTMLElement>,
+      container: HTMLElement,
+    ) => {
+      await findByText('my-task');
+      const row = container.querySelector('tbody tr') as HTMLElement;
+      fireEvent.click(row.querySelector('button') as HTMLElement);
+      await wait(() => expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(5));
+      const deleteItem = Array.from(document.querySelectorAll('[role="menuitem"]')).find(
+        item => item.textContent === 'Delete',
+      ) as HTMLElement;
+      fireEvent.click(deleteItem);
+    };
+
+    const getDialogButton = (label: 'Cancel' | 'Confirm' | 'Close') =>
+      Array.from(document.querySelectorAll('button')).find(
+        b => b.textContent?.trim() === label,
+      ) as HTMLElement;
+
+    it('shows a confirmation dialog with the task name and Confirm/Cancel buttons', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      expect(document.body.textContent).toContain('Delete my-task');
+      expect(document.body.textContent).toContain('Are you sure you wish to delete this task?');
+      expect(getDialogButton('Cancel')).toBeInTheDocument();
+      expect(getDialogButton('Confirm')).toBeInTheDocument();
+    });
+
+    it('clicking Cancel closes the dialog without calling the delete API', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      fireEvent.click(getDialogButton('Cancel'));
+
+      await wait(() => {
+        expect(document.body.textContent).not.toContain(
+          'Are you sure you wish to delete this task?',
+        );
+      });
+      expect(fetchMock.called('/api/tasks/my-task', { method: 'delete' })).toBe(false);
+    });
+
+    it('on Confirm with a 200 response, shows the "Deleted OK" snackbar', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      fetchMock.delete('/api/tasks/my-task', 200);
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      fireEvent.click(getDialogButton('Confirm'));
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Task my-task: Deleted OK');
+      });
+    });
+
+    it('on Confirm with a non-200/201 response, shows a Deletion Failed dialog with the response body', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      fetchMock.delete('/api/tasks/my-task', {
+        status: 500,
+        body: { message: 'Task is currently running' },
+      });
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      fireEvent.click(getDialogButton('Confirm'));
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Deletion Failed');
+      });
+      expect(document.body.textContent).toContain('Task is currently running');
+    });
+
+    it('on Confirm with a 200 response, refreshes the task list after the toast is shown', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      fetchMock.delete('/api/tasks/my-task', 200);
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      expect(fetchMock.calls('/api/tasks', { method: 'get' })).toHaveLength(1);
+
+      fireEvent.click(getDialogButton('Confirm'));
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Task my-task: Deleted OK');
+      });
+      expect(fetchMock.calls('/api/tasks', { method: 'get' })).toHaveLength(2);
+    });
+
+    it('on a non-200/201 response, does not refresh the task list', async () => {
+      mockTasksAndStatuses([{ id: 1, name: 'my-task' }]);
+      fetchMock.delete('/api/tasks/my-task', { status: 500, body: { message: 'Nope' } });
+      const { findByText, container } = renderWithWrapper(<ActiveTasks />);
+      await openDeleteConfirm(findByText, container);
+
+      fireEvent.click(getDialogButton('Confirm'));
+
+      await wait(() => {
+        expect(document.body.textContent).toContain('Deletion Failed');
+      });
+      expect(fetchMock.calls('/api/tasks', { method: 'get' })).toHaveLength(1);
     });
   });
 

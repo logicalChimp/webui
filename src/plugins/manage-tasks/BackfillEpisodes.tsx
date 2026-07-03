@@ -535,10 +535,10 @@ const BackfillEpisodes: FC = () => {
           const updatedParsed = YAML.parse(values.backfillTaskConfig);
 
           appendLog(`Creating task '${values.taskName}'...`);
-          const createResp = await createTask(
-            values.taskName,
-            updatedParsed.config ?? updatedParsed,
-          );
+          const createResp = await createTask({
+            config: updatedParsed.config ?? updatedParsed,
+            name: values.taskName,
+          });
           if (!createResp.ok) {
             appendLog(`Error creating task: ${createResp.error?.message ?? 'Unknown error'}`);
             return;

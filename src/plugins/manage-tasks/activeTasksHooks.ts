@@ -17,7 +17,7 @@ export const useGetTasks = () => {
     refresh();
   }, [refresh]);
 
-  return { ...state, tasks };
+  return { ...state, tasks, refresh };
 };
 
 // Fetches the complete set of task statuses (not just a page) so they can be
